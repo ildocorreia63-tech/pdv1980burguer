@@ -133,7 +133,7 @@ export const CheckoutSheet = ({ open, onOpenChange, cart, subtotal, onConfirmed 
         customer_id: s.method === "credit_note" ? customerId : null,
         method: s.method,
         amount: s.amount,
-        status: s.method === "credit_note" ? "pending" : "paid",
+        status: (s.method === "credit_note" ? "pending" : "paid") as "paid" | "pending",
         paid_at: s.method === "credit_note" ? null : new Date().toISOString(),
         created_by: user.id,
       }));
