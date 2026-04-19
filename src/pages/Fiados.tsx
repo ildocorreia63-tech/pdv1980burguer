@@ -9,8 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDate, paymentLabels } from "@/lib/format";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Phone, Banknote, QrCode, CreditCard } from "lucide-react";
+import { Plus, Phone, Banknote, QrCode, CreditCard, Receipt as ReceiptIcon } from "lucide-react";
 import { toast } from "sonner";
+import { ReceiptDialog } from "@/components/pdv/ReceiptDialog";
+import type { ReceiptData } from "@/lib/receipt";
 
 type Customer = { id: string; name: string; phone: string | null; credit_balance: number };
 type Sale = { id: string; total: number; credit_amount: number; created_at: string; status: string };
