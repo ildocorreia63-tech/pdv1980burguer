@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { CheckoutSheet } from "@/components/pdv/CheckoutSheet";
+import { ReceiptDialog } from "@/components/pdv/ReceiptDialog";
+import type { ReceiptData } from "@/lib/receipt";
 
 type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null };
 type Category = { id: string; name: string };
@@ -24,6 +26,8 @@ export default function PDV() {
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [openCheckout, setOpenCheckout] = useState(false);
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [openReceipt, setOpenReceipt] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -65,9 +69,11 @@ export default function PDV() {
   const subtotal = cart.reduce((s, x) => s + x.product.price * x.qty, 0);
   const totalQty = cart.reduce((s, x) => s + x.qty, 0);
 
-  const handleConfirmed = () => {
+  const handleConfirmed = (r: ReceiptData) => {
     setCart([]);
     setOpenCheckout(false);
+    setReceipt(r);
+    setOpenReceipt(true);
     toast.success("Venda registrada com sucesso!");
   };
 
