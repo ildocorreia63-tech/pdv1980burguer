@@ -174,6 +174,8 @@ export default function PDV() {
         subtotal={subtotal}
         onConfirmed={handleConfirmed}
       />
+
+      <ReceiptDialog open={openReceipt} onOpenChange={setOpenReceipt} receipt={receipt} />
     </AppShell>
   );
 }
