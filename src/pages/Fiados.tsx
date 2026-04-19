@@ -28,6 +28,39 @@ export default function Fiados() {
   const [newOpen, setNewOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [openReceipt, setOpenReceipt] = useState(false);
+
+  const openReceiptFor = async (saleId: string) => {
+    const [{ data: sale }, { data: items }, { data: pays }] = await Promise.all([
+      supabase.from("sales").select("*, customers(name, phone)").eq("id", saleId).maybeSingle(),
+      supabase.from("sale_items").select("*").eq("sale_id", saleId),
+      supabase.from("payments").select("*").eq("sale_id", saleId),
+    ]);
+    if (!sale) return toast.error("Venda não encontrada");
+    setReceipt({
+      saleId: sale.id,
+      createdAt: sale.created_at,
+      items: (items ?? []).map((it) => ({
+        name: it.product_name,
+        qty: Number(it.quantity),
+        unitPrice: Number(it.unit_price),
+        subtotal: Number(it.subtotal),
+      })),
+      subtotal: Number(sale.subtotal),
+      discount: Number(sale.discount),
+      total: Number(sale.total),
+      payments: (pays ?? []).map((p) => ({
+        method: p.method,
+        amount: Number(p.amount),
+        status: p.status as "paid" | "pending",
+      })),
+      customerName: (sale as any).customers?.name ?? null,
+      customerPhone: (sale as any).customers?.phone ?? null,
+      notes: sale.notes,
+    });
+    setOpenReceipt(true);
+  };
 
   const load = async () => {
     const { data } = await supabase.from("customers").select("*").order("credit_balance", { ascending: false });
@@ -183,8 +216,8 @@ export default function Fiados() {
               <h4 className="font-display text-lg mt-4 mb-2">Histórico</h4>
               <div className="space-y-2">
                 {history.map((s) => (
-                  <Card key={s.id} className="p-2.5 flex items-center justify-between">
-                    <div>
+                  <Card key={s.id} className="p-2.5 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">{formatDate(s.created_at)}</p>
                       <p className="text-[11px] uppercase font-display">{s.status}</p>
                     </div>
@@ -194,6 +227,9 @@ export default function Fiados() {
                         <p className="text-[11px] text-destructive">fiado: {formatBRL(s.credit_amount)}</p>
                       )}
                     </div>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openReceiptFor(s.id)} aria-label="Ver comprovante">
+                      <ReceiptIcon className="h-4 w-4 text-primary" />
+                    </Button>
                   </Card>
                 ))}
                 {history.length === 0 && <p className="text-xs text-muted-foreground">Sem vendas.</p>}
@@ -202,6 +238,8 @@ export default function Fiados() {
           )}
         </SheetContent>
       </Sheet>
+
+      <ReceiptDialog open={openReceipt} onOpenChange={setOpenReceipt} receipt={receipt} />
     </AppShell>
   );
 }
