@@ -20,7 +20,7 @@ type Props = {
   onOpenChange: (v: boolean) => void;
   cart: CartItem[];
   subtotal: number;
-  onConfirmed: () => void;
+  onConfirmed: (receipt: import("@/lib/receipt").ReceiptData) => void;
 };
 
 const methodIcons: Record<Method, any> = {
@@ -148,7 +148,28 @@ export const CheckoutSheet = ({ open, onOpenChange, cart, subtotal, onConfirmed 
           .eq("id", customerId);
       }
 
-      onConfirmed();
+      const customer = customerId ? customers.find((c) => c.id === customerId) : null;
+      onConfirmed({
+        saleId: sale.id,
+        createdAt: sale.created_at,
+        items: cart.map((c) => ({
+          name: c.product.name,
+          qty: c.qty,
+          unitPrice: c.product.price,
+          subtotal: c.product.price * c.qty,
+        })),
+        subtotal,
+        discount,
+        total,
+        payments: splits.map((s) => ({
+          method: s.method,
+          amount: s.amount,
+          status: (s.method === "credit_note" ? "pending" : "paid") as "paid" | "pending",
+        })),
+        customerName: customer?.name ?? null,
+        customerPhone: customer?.phone ?? null,
+        notes: notes || null,
+      });
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao salvar venda");
     } finally {
