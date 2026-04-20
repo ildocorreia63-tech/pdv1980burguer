@@ -61,7 +61,10 @@ export default function Home() {
             <span className="text-[11px] font-semibold uppercase">Vendas</span>
           </div>
           <p className="mt-1 font-display text-2xl">{formatBRL(stats.todaySales)}</p>
-          <p className="text-[11px] text-muted-foreground">{stats.todayCount} pedidos</p>
+          <p className="text-[11px] text-muted-foreground">
+            {stats.todayCount} pedidos
+            {stats.todayCreditReceived > 0 && ` · fiado: ${formatBRL(stats.todayCreditReceived)}`}
+          </p>
         </Card>
         <Card className="p-4 shadow-card-retro border-l-4 border-l-destructive">
           <div className="flex items-center gap-2 text-destructive">
