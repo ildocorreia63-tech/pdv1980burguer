@@ -68,9 +68,9 @@ export default function Despesas() {
     load();
   };
 
-  const today = new Date().toISOString().slice(0, 10);
-  const monthStart = new Date(); monthStart.setDate(1);
-  const monthIso = monthStart.toISOString().slice(0, 10);
+  const today = localToday();
+  const md = new Date(); md.setDate(1);
+  const monthIso = `${md.getFullYear()}-${String(md.getMonth() + 1).padStart(2, "0")}-01`;
 
   const totalToday = list.filter((e) => e.expense_date === today).reduce((s, e) => s + e.amount, 0);
   const totalMonth = list.filter((e) => e.expense_date >= monthIso).reduce((s, e) => s + e.amount, 0);
