@@ -23,8 +23,8 @@ export default function Fiados() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Customer | null>(null);
   const [history, setHistory] = useState<Sale[]>([]);
-  const [payAmount, setPayAmount] = useState(0);
-  const [payMethod, setPayMethod] = useState<"cash" | "pix" | "debit" | "credit">("cash");
+  type Method = "cash" | "pix" | "debit" | "credit" | "meal_voucher";
+  const [splits, setSplits] = useState<{ method: Method; amount: number }[]>([{ method: "cash", amount: 0 }]);
   const [newOpen, setNewOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
