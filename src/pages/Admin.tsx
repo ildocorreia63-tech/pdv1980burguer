@@ -96,7 +96,16 @@ export default function Admin() {
   return (
     <AppShell
       title="Admin — Produtos"
-      action={<Button size="icon" variant="outline" onClick={openNew}><Plus className="h-4 w-4" /></Button>}
+      action={
+        <div className="flex gap-2">
+          <Button size="icon" variant="outline" onClick={() => setCatOpen(true)} title="Categorias">
+            <Tag className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="outline" onClick={openNew} title="Novo produto">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      }
     >
       <div className="space-y-4">
         {grouped.map((g) => (
