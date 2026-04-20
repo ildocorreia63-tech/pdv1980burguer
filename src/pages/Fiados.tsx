@@ -23,8 +23,8 @@ export default function Fiados() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Customer | null>(null);
   const [history, setHistory] = useState<Sale[]>([]);
-  const [payAmount, setPayAmount] = useState(0);
-  const [payMethod, setPayMethod] = useState<"cash" | "pix" | "debit" | "credit">("cash");
+  type Method = "cash" | "pix" | "debit" | "credit" | "meal_voucher";
+  const [splits, setSplits] = useState<{ method: Method; amount: number }[]>([{ method: "cash", amount: 0 }]);
   const [newOpen, setNewOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
@@ -71,7 +71,7 @@ export default function Fiados() {
 
   const openDetail = async (c: Customer) => {
     setSelected(c);
-    setPayAmount(c.credit_balance);
+    setSplits([{ method: "cash", amount: c.credit_balance }]);
     const { data } = await supabase
       .from("sales")
       .select("id,total,credit_amount,created_at,status")
@@ -81,24 +81,43 @@ export default function Fiados() {
     setHistory((data ?? []).map((s) => ({ ...s, total: Number(s.total), credit_amount: Number(s.credit_amount) })));
   };
 
+  const splitTotal = splits.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const remaining = selected ? +(selected.credit_balance - splitTotal).toFixed(2) : 0;
+
+  const updateSplit = (idx: number, patch: Partial<{ method: Method; amount: number }>) => {
+    setSplits((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+  };
+  const addSplit = () => {
+    if (!selected) return;
+    const left = Math.max(0, remaining);
+    setSplits((prev) => [...prev, { method: "pix", amount: left }]);
+  };
+  const removeSplit = (idx: number) => setSplits((prev) => prev.filter((_, i) => i !== idx));
+
   const registerPayment = async () => {
     if (!selected || !user) return;
-    if (payAmount <= 0 || payAmount > selected.credit_balance) return toast.error("Valor inválido");
+    const valid = splits.filter((p) => p.amount > 0);
+    if (valid.length === 0) return toast.error("Informe ao menos um valor");
+    const total = +valid.reduce((s, p) => s + p.amount, 0).toFixed(2);
+    if (total <= 0) return toast.error("Valor inválido");
+    if (total > selected.credit_balance + 0.001) return toast.error("Valor excede o saldo devedor");
 
-    const { error: e1 } = await supabase.from("payments").insert({
+    const nowIso = new Date().toISOString();
+    const rows = valid.map((p) => ({
       customer_id: selected.id,
-      method: payMethod,
-      amount: payAmount,
+      method: p.method,
+      amount: p.amount,
       status: "paid" as const,
-      paid_at: new Date().toISOString(),
+      paid_at: nowIso,
       created_by: user.id,
       notes: "Baixa de fiado",
-    });
+    }));
+    const { error: e1 } = await supabase.from("payments").insert(rows);
     if (e1) return toast.error(e1.message);
 
-    const newBal = +(selected.credit_balance - payAmount).toFixed(2);
+    const newBal = +(selected.credit_balance - total).toFixed(2);
     await supabase.from("customers").update({ credit_balance: newBal }).eq("id", selected.id);
-    toast.success("Pagamento registrado!");
+    toast.success(`Recebido ${formatBRL(total)}!`);
     setSelected(null);
     load();
   };
@@ -180,35 +199,71 @@ export default function Fiados() {
               </Card>
 
               {selected.credit_balance > 0 && (
-                <div className="mt-3 rounded-lg border border-border p-3 bg-card">
-                  <Label className="text-xs uppercase tracking-wider">Receber pagamento</Label>
-                  <div className="grid grid-cols-4 gap-2 mt-2">
-                    {([
-                      ["cash", Banknote],
-                      ["pix", QrCode],
-                      ["debit", CreditCard],
-                      ["credit", CreditCard],
-                    ] as const).map(([m, Icon]) => (
-                      <button
-                        key={m}
-                        onClick={() => setPayMethod(m)}
-                        className={`rounded-lg border p-2 flex flex-col items-center gap-1 text-[10px] font-display ${
-                          payMethod === m ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {paymentLabels[m]}
-                      </button>
-                    ))}
+                <div className="mt-3 rounded-lg border border-border p-3 bg-card space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs uppercase tracking-wider">Receber pagamento</Label>
+                    <span className="text-[11px] text-muted-foreground">
+                      Restante: <span className={remaining < 0 ? "text-destructive font-semibold" : "font-semibold"}>{formatBRL(remaining)}</span>
+                    </span>
                   </div>
-                  <div className="mt-2 flex gap-2">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={payAmount || ""}
-                      onChange={(e) => setPayAmount(Number(e.target.value) || 0)}
-                    />
-                    <Button onClick={registerPayment}>Receber</Button>
+
+                  {splits.map((p, idx) => (
+                    <div key={idx} className="rounded-md border border-border/60 p-2 bg-background/40 space-y-2">
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {([
+                          ["cash", Banknote],
+                          ["pix", QrCode],
+                          ["debit", CreditCard],
+                          ["credit", CreditCard],
+                          ["meal_voucher", CreditCard],
+                        ] as const).map(([m, Icon]) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => updateSplit(idx, { method: m })}
+                            className={`rounded-md border p-1.5 flex flex-col items-center gap-0.5 text-[9px] font-display ${
+                              p.method === m ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"
+                            }`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            <span className="leading-none">{paymentLabels[m]}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          inputMode="decimal"
+                          placeholder="0,00"
+                          value={p.amount || ""}
+                          onChange={(e) => updateSplit(idx, { amount: Number(e.target.value) || 0 })}
+                        />
+                        {splits.length > 1 && (
+                          <Button variant="ghost" size="sm" onClick={() => removeSplit(idx)}>Remover</Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={addSplit}
+                      disabled={remaining <= 0}
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Outra forma
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      onClick={registerPayment}
+                      disabled={splitTotal <= 0 || splitTotal > selected.credit_balance + 0.001}
+                    >
+                      Receber {formatBRL(splitTotal)}
+                    </Button>
                   </div>
                 </div>
               )}
