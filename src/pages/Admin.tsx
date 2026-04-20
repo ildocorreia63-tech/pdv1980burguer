@@ -25,6 +25,8 @@ export default function Admin() {
   const [price, setPrice] = useState(0);
   const [catId, setCatId] = useState<string>("");
   const [active, setActive] = useState(true);
+  const [catOpen, setCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
 
   const load = async () => {
     const [{ data: p }, { data: c }] = await Promise.all([
