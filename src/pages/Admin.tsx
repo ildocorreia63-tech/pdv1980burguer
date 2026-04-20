@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 type Product = { id: string; name: string; description: string | null; price: number; category_id: string | null; active: boolean };
