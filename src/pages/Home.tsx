@@ -8,25 +8,38 @@ import { useNavigate } from "react-router-dom";
 
 export default function Home() {
   const nav = useNavigate();
-  const [stats, setStats] = useState({ todaySales: 0, todayCount: 0, todayExpenses: 0, openCredit: 0 });
+  const [stats, setStats] = useState({ todaySales: 0, todayCount: 0, todayExpenses: 0, openCredit: 0, todayCreditReceived: 0 });
 
   useEffect(() => {
     const load = async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const iso = today.toISOString();
+      const todayDate = today.toISOString().slice(0, 10);
 
-      const [{ data: sales }, { data: exps }, { data: creds }] = await Promise.all([
-        supabase.from("sales").select("total, status").gte("created_at", iso).neq("status", "cancelled"),
-        supabase.from("expenses").select("amount").gte("expense_date", today.toISOString().slice(0, 10)),
+      const [{ data: sales }, { data: exps }, { data: creds }, { data: creditPays }] = await Promise.all([
+        supabase.from("sales").select("total, paid_amount, status").gte("created_at", iso).neq("status", "cancelled"),
+        supabase.from("expenses").select("amount").gte("expense_date", todayDate),
         supabase.from("customers").select("credit_balance").gt("credit_balance", 0),
+        supabase
+          .from("payments")
+          .select("amount")
+          .is("sale_id", null)
+          .not("customer_id", "is", null)
+          .eq("status", "paid")
+          .gte("paid_at", iso),
       ]);
 
+      // Receita do dia = parte recebida das vendas do dia + baixas de fiado recebidas hoje
+      const salesPaidToday = (sales ?? []).reduce((s, r) => s + Number(r.paid_amount), 0);
+      const creditReceivedToday = (creditPays ?? []).reduce((s, r) => s + Number(r.amount), 0);
+
       setStats({
-        todaySales: (sales ?? []).reduce((s, r) => s + Number(r.total), 0),
+        todaySales: salesPaidToday + creditReceivedToday,
         todayCount: sales?.length ?? 0,
         todayExpenses: (exps ?? []).reduce((s, r) => s + Number(r.amount), 0),
         openCredit: (creds ?? []).reduce((s, r) => s + Number(r.credit_balance), 0),
+        todayCreditReceived: creditReceivedToday,
       });
     };
     load();
