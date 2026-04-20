@@ -23,7 +23,11 @@ export default function Despesas() {
   const [desc, setDesc] = useState("");
   const [cat, setCat] = useState("Insumos");
   const [amount, setAmount] = useState(0);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const localToday = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const [date, setDate] = useState(localToday());
   const [notes, setNotes] = useState("");
 
   const load = async () => {
@@ -64,9 +68,9 @@ export default function Despesas() {
     load();
   };
 
-  const today = new Date().toISOString().slice(0, 10);
-  const monthStart = new Date(); monthStart.setDate(1);
-  const monthIso = monthStart.toISOString().slice(0, 10);
+  const today = localToday();
+  const md = new Date(); md.setDate(1);
+  const monthIso = `${md.getFullYear()}-${String(md.getMonth() + 1).padStart(2, "0")}-01`;
 
   const totalToday = list.filter((e) => e.expense_date === today).reduce((s, e) => s + e.amount, 0);
   const totalMonth = list.filter((e) => e.expense_date >= monthIso).reduce((s, e) => s + e.amount, 0);
