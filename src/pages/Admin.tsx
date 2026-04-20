@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag } from "lucide-react";
 import { toast } from "sonner";
 
 type Product = { id: string; name: string; description: string | null; price: number; category_id: string | null; active: boolean };
@@ -25,6 +25,8 @@ export default function Admin() {
   const [price, setPrice] = useState(0);
   const [catId, setCatId] = useState<string>("");
   const [active, setActive] = useState(true);
+  const [catOpen, setCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
 
   const load = async () => {
     const [{ data: p }, { data: c }] = await Promise.all([
@@ -68,12 +70,42 @@ export default function Admin() {
     toast.success("Salvo!");
   };
 
+  const addCategory = async () => {
+    const n = newCatName.trim();
+    if (!n) return toast.error("Informe o nome da categoria");
+    if (n.length > 60) return toast.error("Nome muito longo");
+    const nextOrder = (cats[cats.length - 1]?.["sort_order" as keyof Category] as unknown as number ?? cats.length) + 1;
+    const { error } = await supabase.from("categories").insert({ name: n, sort_order: nextOrder });
+    if (error) return toast.error(error.message);
+    setNewCatName("");
+    toast.success("Categoria criada");
+    load();
+  };
+
+  const removeCategory = async (id: string, hasItems: boolean) => {
+    if (hasItems) return toast.error("Remova ou mova os produtos desta categoria antes");
+    if (!confirm("Excluir categoria?")) return;
+    const { error } = await supabase.from("categories").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Categoria excluída");
+    load();
+  };
+
   const grouped = cats.map((c) => ({ ...c, items: products.filter((p) => p.category_id === c.id) }));
 
   return (
     <AppShell
       title="Admin — Produtos"
-      action={<Button size="icon" variant="outline" onClick={openNew}><Plus className="h-4 w-4" /></Button>}
+      action={
+        <div className="flex gap-2">
+          <Button size="icon" variant="outline" onClick={() => setCatOpen(true)} title="Categorias">
+            <Tag className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="outline" onClick={openNew} title="Novo produto">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      }
     >
       <div className="space-y-4">
         {grouped.map((g) => (
@@ -118,6 +150,43 @@ export default function Admin() {
               <Switch id="active" checked={active} onCheckedChange={setActive} />
             </div>
             <Button className="w-full" onClick={save}>Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={catOpen} onOpenChange={setCatOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Categorias</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nova categoria"
+                value={newCatName}
+                maxLength={60}
+                onChange={(e) => setNewCatName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addCategory()}
+              />
+              <Button onClick={addCategory}>Adicionar</Button>
+            </div>
+            <div className="space-y-1 max-h-72 overflow-y-auto">
+              {grouped.map((g) => (
+                <div key={g.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{g.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{g.items.length} produto(s)</p>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-destructive"
+                    onClick={() => removeCategory(g.id, g.items.length > 0)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+              {cats.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">Nenhuma categoria.</p>}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
