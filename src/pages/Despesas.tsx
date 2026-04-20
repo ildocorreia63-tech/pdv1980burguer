@@ -27,6 +27,10 @@ export default function Despesas() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   };
+  const formatLocalDate = (value: string) => {
+    const [year, month, day] = value.split("-");
+    return `${day}/${month}/${year}`;
+  };
   const [date, setDate] = useState(localToday());
   const [notes, setNotes] = useState("");
 
@@ -119,7 +123,7 @@ export default function Despesas() {
             <div className="min-w-0">
               <p className="font-medium truncate">{e.description}</p>
               <p className="text-[11px] text-muted-foreground">
-                {e.category} • {new Date(e.expense_date).toLocaleDateString("pt-BR")}
+                {e.category} • {formatLocalDate(e.expense_date)}
               </p>
             </div>
             <div className="flex items-center gap-2">
