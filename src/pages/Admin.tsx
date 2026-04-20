@@ -70,6 +70,27 @@ export default function Admin() {
     toast.success("Salvo!");
   };
 
+  const addCategory = async () => {
+    const n = newCatName.trim();
+    if (!n) return toast.error("Informe o nome da categoria");
+    if (n.length > 60) return toast.error("Nome muito longo");
+    const nextOrder = (cats[cats.length - 1]?.["sort_order" as keyof Category] as unknown as number ?? cats.length) + 1;
+    const { error } = await supabase.from("categories").insert({ name: n, sort_order: nextOrder });
+    if (error) return toast.error(error.message);
+    setNewCatName("");
+    toast.success("Categoria criada");
+    load();
+  };
+
+  const removeCategory = async (id: string, hasItems: boolean) => {
+    if (hasItems) return toast.error("Remova ou mova os produtos desta categoria antes");
+    if (!confirm("Excluir categoria?")) return;
+    const { error } = await supabase.from("categories").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Categoria excluída");
+    load();
+  };
+
   const grouped = cats.map((c) => ({ ...c, items: products.filter((p) => p.category_id === c.id) }));
 
   return (
