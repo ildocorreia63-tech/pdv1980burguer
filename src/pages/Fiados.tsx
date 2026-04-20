@@ -71,7 +71,7 @@ export default function Fiados() {
 
   const openDetail = async (c: Customer) => {
     setSelected(c);
-    setPayAmount(c.credit_balance);
+    setSplits([{ method: "cash", amount: c.credit_balance }]);
     const { data } = await supabase
       .from("sales")
       .select("id,total,credit_amount,created_at,status")
@@ -81,24 +81,43 @@ export default function Fiados() {
     setHistory((data ?? []).map((s) => ({ ...s, total: Number(s.total), credit_amount: Number(s.credit_amount) })));
   };
 
+  const splitTotal = splits.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const remaining = selected ? +(selected.credit_balance - splitTotal).toFixed(2) : 0;
+
+  const updateSplit = (idx: number, patch: Partial<{ method: Method; amount: number }>) => {
+    setSplits((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+  };
+  const addSplit = () => {
+    if (!selected) return;
+    const left = Math.max(0, remaining);
+    setSplits((prev) => [...prev, { method: "pix", amount: left }]);
+  };
+  const removeSplit = (idx: number) => setSplits((prev) => prev.filter((_, i) => i !== idx));
+
   const registerPayment = async () => {
     if (!selected || !user) return;
-    if (payAmount <= 0 || payAmount > selected.credit_balance) return toast.error("Valor inválido");
+    const valid = splits.filter((p) => p.amount > 0);
+    if (valid.length === 0) return toast.error("Informe ao menos um valor");
+    const total = +valid.reduce((s, p) => s + p.amount, 0).toFixed(2);
+    if (total <= 0) return toast.error("Valor inválido");
+    if (total > selected.credit_balance + 0.001) return toast.error("Valor excede o saldo devedor");
 
-    const { error: e1 } = await supabase.from("payments").insert({
+    const nowIso = new Date().toISOString();
+    const rows = valid.map((p) => ({
       customer_id: selected.id,
-      method: payMethod,
-      amount: payAmount,
+      method: p.method,
+      amount: p.amount,
       status: "paid" as const,
-      paid_at: new Date().toISOString(),
+      paid_at: nowIso,
       created_by: user.id,
       notes: "Baixa de fiado",
-    });
+    }));
+    const { error: e1 } = await supabase.from("payments").insert(rows);
     if (e1) return toast.error(e1.message);
 
-    const newBal = +(selected.credit_balance - payAmount).toFixed(2);
+    const newBal = +(selected.credit_balance - total).toFixed(2);
     await supabase.from("customers").update({ credit_balance: newBal }).eq("id", selected.id);
-    toast.success("Pagamento registrado!");
+    toast.success(`Recebido ${formatBRL(total)}!`);
     setSelected(null);
     load();
   };
