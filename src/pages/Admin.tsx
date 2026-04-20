@@ -153,6 +153,43 @@ export default function Admin() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={catOpen} onOpenChange={setCatOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Categorias</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nova categoria"
+                value={newCatName}
+                maxLength={60}
+                onChange={(e) => setNewCatName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addCategory()}
+              />
+              <Button onClick={addCategory}>Adicionar</Button>
+            </div>
+            <div className="space-y-1 max-h-72 overflow-y-auto">
+              {grouped.map((g) => (
+                <div key={g.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{g.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{g.items.length} produto(s)</p>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-destructive"
+                    onClick={() => removeCategory(g.id, g.items.length > 0)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+              {cats.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">Nenhuma categoria.</p>}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
