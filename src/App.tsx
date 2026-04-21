@@ -11,6 +11,8 @@ import PDV from "./pages/PDV";
 import Fiados from "./pages/Fiados";
 import Despesas from "./pages/Despesas";
 import Admin from "./pages/Admin";
+import PedidosOnline from "./pages/PedidosOnline";
+import Cardapio from "./pages/Cardapio";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -23,9 +25,11 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            <Route path="/cardapio" element={<Cardapio />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/pdv" element={<ProtectedRoute><PDV /></ProtectedRoute>} />
+            <Route path="/pedidos" element={<ProtectedRoute><PedidosOnline /></ProtectedRoute>} />
             <Route path="/fiado" element={<ProtectedRoute><Fiados /></ProtectedRoute>} />
             <Route path="/despesas" element={<ProtectedRoute><Despesas /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
