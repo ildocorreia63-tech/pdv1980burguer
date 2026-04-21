@@ -9,11 +9,33 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
-import { Plus, Pencil, Trash2, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, GripVertical } from "lucide-react";
 import { toast } from "sonner";
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Product = { id: string; name: string; description: string | null; price: number; category_id: string | null; active: boolean };
-type Category = { id: string; name: string };
+type Category = { id: string; name: string; sort_order: number };
+
+function SortableCategoryRow({ cat, count, onRemove }: { cat: Category & { items: Product[] }; count: number; onRemove: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-1 rounded-md border border-border px-2 py-2 bg-background">
+      <button {...attributes} {...listeners} className="touch-none p-1 text-muted-foreground cursor-grab active:cursor-grabbing" aria-label="Arrastar">
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="min-w-0 flex-1">
+        <p className="font-medium truncate">{cat.name}</p>
+        <p className="text-[11px] text-muted-foreground">{count} produto(s)</p>
+      </div>
+      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={onRemove}>
+        <Trash2 className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+}
 
 export default function Admin() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -34,10 +56,34 @@ export default function Admin() {
       supabase.from("categories").select("*").order("sort_order"),
     ]);
     setProducts((p ?? []).map((x) => ({ ...x, price: Number(x.price) })));
-    setCats(c ?? []);
+    setCats((c ?? []) as Category[]);
   };
 
   useEffect(() => { load(); }, []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = cats.findIndex((c) => c.id === active.id);
+    const newIndex = cats.findIndex((c) => c.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const reordered = arrayMove(cats, oldIndex, newIndex);
+    setCats(reordered);
+    const results = await Promise.all(
+      reordered.map((c, i) => supabase.from("categories").update({ sort_order: i }).eq("id", c.id))
+    );
+    if (results.find((r) => r.error)) {
+      toast.error("Erro ao reordenar");
+      load();
+    } else {
+      toast.success("Ordem salva");
+    }
+  };
 
   const openNew = () => {
     setEditing(null);
@@ -168,23 +214,20 @@ export default function Admin() {
               />
               <Button onClick={addCategory}>Adicionar</Button>
             </div>
+            <p className="text-[11px] text-muted-foreground">Arraste para reordenar.</p>
             <div className="space-y-1 max-h-72 overflow-y-auto">
-              {grouped.map((g) => (
-                <div key={g.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">{g.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{g.items.length} produto(s)</p>
-                  </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 text-destructive"
-                    onClick={() => removeCategory(g.id, g.items.length > 0)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={grouped.map((g) => g.id)} strategy={verticalListSortingStrategy}>
+                  {grouped.map((g) => (
+                    <SortableCategoryRow
+                      key={g.id}
+                      cat={g}
+                      count={g.items.length}
+                      onRemove={() => removeCategory(g.id, g.items.length > 0)}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
               {cats.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">Nenhuma categoria.</p>}
             </div>
           </div>
