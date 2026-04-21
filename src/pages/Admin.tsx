@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
-import { Plus, Pencil, Trash2, Tag, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -50,13 +50,37 @@ export default function Admin() {
   const [catOpen, setCatOpen] = useState(false);
   const [newCatName, setNewCatName] = useState("");
 
+  // Delivery zones
+  const [zonesOpen, setZonesOpen] = useState(false);
+  const [zones, setZones] = useState<{ id: string; name: string; fee: number; active: boolean }[]>([]);
+  const [newZoneName, setNewZoneName] = useState("");
+  const [newZoneFee, setNewZoneFee] = useState(0);
+
+  // Store settings
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [storeName, setStoreName] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [welcome, setWelcome] = useState("");
+  const [menuOpen, setMenuOpen] = useState(true);
+  const [settingsId, setSettingsId] = useState<string | null>(null);
+
   const load = async () => {
-    const [{ data: p }, { data: c }] = await Promise.all([
+    const [{ data: p }, { data: c }, { data: z }, { data: s }] = await Promise.all([
       supabase.from("products").select("*").order("name"),
       supabase.from("categories").select("*").order("sort_order"),
+      supabase.from("delivery_zones").select("*").order("sort_order"),
+      supabase.from("store_settings").select("*").maybeSingle(),
     ]);
     setProducts((p ?? []).map((x) => ({ ...x, price: Number(x.price) })));
     setCats((c ?? []) as Category[]);
+    setZones((z ?? []).map((x: any) => ({ id: x.id, name: x.name, fee: Number(x.fee), active: x.active })));
+    if (s) {
+      setSettingsId(s.id);
+      setStoreName(s.store_name ?? "");
+      setWhatsapp(s.whatsapp_number ?? "");
+      setWelcome(s.welcome_message ?? "");
+      setMenuOpen(s.menu_open);
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -139,11 +163,52 @@ export default function Admin() {
 
   const grouped = cats.map((c) => ({ ...c, items: products.filter((p) => p.category_id === c.id) }));
 
+  const addZone = async () => {
+    const n = newZoneName.trim();
+    if (!n) return toast.error("Informe o bairro");
+    const nextOrder = zones.length;
+    const { error } = await supabase.from("delivery_zones").insert({ name: n, fee: newZoneFee, sort_order: nextOrder });
+    if (error) return toast.error(error.message);
+    setNewZoneName(""); setNewZoneFee(0);
+    toast.success("Bairro adicionado");
+    load();
+  };
+  const updateZoneFee = async (id: string, fee: number) => {
+    const { error } = await supabase.from("delivery_zones").update({ fee }).eq("id", id);
+    if (error) return toast.error(error.message);
+    setZones((zs) => zs.map((z) => z.id === id ? { ...z, fee } : z));
+  };
+  const removeZone = async (id: string) => {
+    if (!confirm("Excluir bairro?")) return;
+    const { error } = await supabase.from("delivery_zones").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Bairro excluído");
+    load();
+  };
+
+  const saveSettings = async () => {
+    if (!settingsId) return;
+    const { error } = await supabase.from("store_settings").update({
+      store_name: storeName.trim() || "Minha Loja",
+      whatsapp_number: whatsapp.replace(/\D/g, "") || null,
+      welcome_message: welcome.trim() || null,
+      menu_open: menuOpen,
+    }).eq("id", settingsId);
+    if (error) return toast.error(error.message);
+    toast.success("Configurações salvas");
+  };
+
   return (
     <AppShell
       title="Admin — Produtos"
       action={
-        <div className="flex gap-2">
+        <div className="flex gap-1">
+          <Button size="icon" variant="outline" onClick={() => setSettingsOpen(true)} title="Configurações da loja">
+            <SettingsIcon className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="outline" onClick={() => setZonesOpen(true)} title="Bairros (entrega)">
+            <MapPin className="h-4 w-4" />
+          </Button>
           <Button size="icon" variant="outline" onClick={() => setCatOpen(true)} title="Categorias">
             <Tag className="h-4 w-4" />
           </Button>
@@ -230,6 +295,62 @@ export default function Admin() {
               </DndContext>
               {cats.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">Nenhuma categoria.</p>}
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bairros / zonas de entrega */}
+      <Dialog open={zonesOpen} onOpenChange={setZonesOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Bairros e taxas de entrega</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-[1fr_100px_auto] gap-2">
+              <Input placeholder="Bairro" value={newZoneName} onChange={(e) => setNewZoneName(e.target.value)} />
+              <Input type="number" step="0.01" placeholder="Taxa" value={newZoneFee || ""} onChange={(e) => setNewZoneFee(Number(e.target.value) || 0)} />
+              <Button onClick={addZone}>+</Button>
+            </div>
+            <div className="space-y-1 max-h-72 overflow-y-auto">
+              {zones.map((z) => (
+                <div key={z.id} className="flex items-center gap-2 rounded-md border border-border px-2 py-2 bg-background">
+                  <span className="flex-1 truncate text-sm">{z.name}</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={z.fee}
+                    onChange={(e) => updateZoneFee(z.id, Number(e.target.value) || 0)}
+                    className="h-8 w-24 text-right"
+                  />
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeZone(z.id)}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+              {zones.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">Nenhum bairro.</p>}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Configurações da loja */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Configurações do cardápio online</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nome da loja</Label><Input value={storeName} onChange={(e) => setStoreName(e.target.value)} /></div>
+            <div>
+              <Label>WhatsApp da loja</Label>
+              <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="5511999999999" inputMode="tel" />
+              <p className="text-[11px] text-muted-foreground mt-1">Apenas números, com DDI (55) e DDD. Ex: 5511988887777</p>
+            </div>
+            <div><Label>Mensagem de boas-vindas</Label><Textarea rows={2} value={welcome} onChange={(e) => setWelcome(e.target.value)} /></div>
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <Label htmlFor="menu_open">Cardápio aberto (recebendo pedidos)</Label>
+              <Switch id="menu_open" checked={menuOpen} onCheckedChange={setMenuOpen} />
+            </div>
+            <div className="rounded-md bg-muted/50 p-2 text-xs">
+              Link do cardápio: <code className="text-primary">{window.location.origin}/cardapio</code>
+            </div>
+            <Button className="w-full" onClick={saveSettings}>Salvar</Button>
           </div>
         </DialogContent>
       </Dialog>

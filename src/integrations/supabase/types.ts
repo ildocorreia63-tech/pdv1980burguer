@@ -65,6 +65,33 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_zones: {
+        Row: {
+          active: boolean
+          created_at: string
+          fee: number
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          fee?: number
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          fee?: number
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
@@ -100,6 +127,141 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      online_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          online_order_id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          subtotal: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          online_order_id: string
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          subtotal: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          online_order_id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          subtotal?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "online_order_items_online_order_id_fkey"
+            columns: ["online_order_id"]
+            isOneToOne: false
+            referencedRelation: "online_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "online_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      online_orders: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          address_complement: string | null
+          address_number: string | null
+          address_reference: string | null
+          address_street: string | null
+          created_at: string
+          customer_name: string
+          customer_phone: string
+          delivery_fee: number
+          delivery_zone_id: string | null
+          delivery_zone_name: string | null
+          id: string
+          notes: string | null
+          order_number: number
+          order_type: Database["public"]["Enums"]["online_order_type"]
+          sale_id: string | null
+          status: Database["public"]["Enums"]["online_order_status"]
+          subtotal: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          address_complement?: string | null
+          address_number?: string | null
+          address_reference?: string | null
+          address_street?: string | null
+          created_at?: string
+          customer_name: string
+          customer_phone: string
+          delivery_fee?: number
+          delivery_zone_id?: string | null
+          delivery_zone_name?: string | null
+          id?: string
+          notes?: string | null
+          order_number?: number
+          order_type: Database["public"]["Enums"]["online_order_type"]
+          sale_id?: string | null
+          status?: Database["public"]["Enums"]["online_order_status"]
+          subtotal?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          address_complement?: string | null
+          address_number?: string | null
+          address_reference?: string | null
+          address_street?: string | null
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string
+          delivery_fee?: number
+          delivery_zone_id?: string | null
+          delivery_zone_name?: string | null
+          id?: string
+          notes?: string | null
+          order_number?: number
+          order_type?: Database["public"]["Enums"]["online_order_type"]
+          sale_id?: string | null
+          status?: Database["public"]["Enums"]["online_order_status"]
+          subtotal?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "online_orders_delivery_zone_id_fkey"
+            columns: ["delivery_zone_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_zones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "online_orders_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {
@@ -324,6 +486,36 @@ export type Database = {
           },
         ]
       }
+      store_settings: {
+        Row: {
+          created_at: string
+          id: string
+          menu_open: boolean
+          store_name: string
+          updated_at: string
+          welcome_message: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          menu_open?: boolean
+          store_name?: string
+          updated_at?: string
+          welcome_message?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          menu_open?: boolean
+          store_name?: string
+          updated_at?: string
+          welcome_message?: string | null
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -361,6 +553,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "operator"
+      online_order_status: "pending" | "accepted" | "rejected" | "completed"
+      online_order_type: "delivery" | "pickup"
       payment_method:
         | "cash"
         | "pix"
@@ -498,6 +692,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "operator"],
+      online_order_status: ["pending", "accepted", "rejected", "completed"],
+      online_order_type: ["delivery", "pickup"],
       payment_method: [
         "cash",
         "pix",
