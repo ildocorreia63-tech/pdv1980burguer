@@ -298,6 +298,62 @@ export default function Admin() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Bairros / zonas de entrega */}
+      <Dialog open={zonesOpen} onOpenChange={setZonesOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Bairros e taxas de entrega</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-[1fr_100px_auto] gap-2">
+              <Input placeholder="Bairro" value={newZoneName} onChange={(e) => setNewZoneName(e.target.value)} />
+              <Input type="number" step="0.01" placeholder="Taxa" value={newZoneFee || ""} onChange={(e) => setNewZoneFee(Number(e.target.value) || 0)} />
+              <Button onClick={addZone}>+</Button>
+            </div>
+            <div className="space-y-1 max-h-72 overflow-y-auto">
+              {zones.map((z) => (
+                <div key={z.id} className="flex items-center gap-2 rounded-md border border-border px-2 py-2 bg-background">
+                  <span className="flex-1 truncate text-sm">{z.name}</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={z.fee}
+                    onChange={(e) => updateZoneFee(z.id, Number(e.target.value) || 0)}
+                    className="h-8 w-24 text-right"
+                  />
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeZone(z.id)}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+              {zones.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">Nenhum bairro.</p>}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Configurações da loja */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Configurações do cardápio online</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Nome da loja</Label><Input value={storeName} onChange={(e) => setStoreName(e.target.value)} /></div>
+            <div>
+              <Label>WhatsApp da loja</Label>
+              <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="5511999999999" inputMode="tel" />
+              <p className="text-[11px] text-muted-foreground mt-1">Apenas números, com DDI (55) e DDD. Ex: 5511988887777</p>
+            </div>
+            <div><Label>Mensagem de boas-vindas</Label><Textarea rows={2} value={welcome} onChange={(e) => setWelcome(e.target.value)} /></div>
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <Label htmlFor="menu_open">Cardápio aberto (recebendo pedidos)</Label>
+              <Switch id="menu_open" checked={menuOpen} onCheckedChange={setMenuOpen} />
+            </div>
+            <div className="rounded-md bg-muted/50 p-2 text-xs">
+              Link do cardápio: <code className="text-primary">{window.location.origin}/cardapio</code>
+            </div>
+            <Button className="w-full" onClick={saveSettings}>Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
