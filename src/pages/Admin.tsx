@@ -56,10 +56,34 @@ export default function Admin() {
       supabase.from("categories").select("*").order("sort_order"),
     ]);
     setProducts((p ?? []).map((x) => ({ ...x, price: Number(x.price) })));
-    setCats(c ?? []);
+    setCats((c ?? []) as Category[]);
   };
 
   useEffect(() => { load(); }, []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = cats.findIndex((c) => c.id === active.id);
+    const newIndex = cats.findIndex((c) => c.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const reordered = arrayMove(cats, oldIndex, newIndex);
+    setCats(reordered);
+    const results = await Promise.all(
+      reordered.map((c, i) => supabase.from("categories").update({ sort_order: i }).eq("id", c.id))
+    );
+    if (results.find((r) => r.error)) {
+      toast.error("Erro ao reordenar");
+      load();
+    } else {
+      toast.success("Ordem salva");
+    }
+  };
 
   const openNew = () => {
     setEditing(null);
