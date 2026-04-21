@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
-import { Plus, Pencil, Trash2, Tag, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -50,13 +50,37 @@ export default function Admin() {
   const [catOpen, setCatOpen] = useState(false);
   const [newCatName, setNewCatName] = useState("");
 
+  // Delivery zones
+  const [zonesOpen, setZonesOpen] = useState(false);
+  const [zones, setZones] = useState<{ id: string; name: string; fee: number; active: boolean }[]>([]);
+  const [newZoneName, setNewZoneName] = useState("");
+  const [newZoneFee, setNewZoneFee] = useState(0);
+
+  // Store settings
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [storeName, setStoreName] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [welcome, setWelcome] = useState("");
+  const [menuOpen, setMenuOpen] = useState(true);
+  const [settingsId, setSettingsId] = useState<string | null>(null);
+
   const load = async () => {
-    const [{ data: p }, { data: c }] = await Promise.all([
+    const [{ data: p }, { data: c }, { data: z }, { data: s }] = await Promise.all([
       supabase.from("products").select("*").order("name"),
       supabase.from("categories").select("*").order("sort_order"),
+      supabase.from("delivery_zones").select("*").order("sort_order"),
+      supabase.from("store_settings").select("*").maybeSingle(),
     ]);
     setProducts((p ?? []).map((x) => ({ ...x, price: Number(x.price) })));
     setCats((c ?? []) as Category[]);
+    setZones((z ?? []).map((x: any) => ({ id: x.id, name: x.name, fee: Number(x.fee), active: x.active })));
+    if (s) {
+      setSettingsId(s.id);
+      setStoreName(s.store_name ?? "");
+      setWhatsapp(s.whatsapp_number ?? "");
+      setWelcome(s.welcome_message ?? "");
+      setMenuOpen(s.menu_open);
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -139,11 +163,52 @@ export default function Admin() {
 
   const grouped = cats.map((c) => ({ ...c, items: products.filter((p) => p.category_id === c.id) }));
 
+  const addZone = async () => {
+    const n = newZoneName.trim();
+    if (!n) return toast.error("Informe o bairro");
+    const nextOrder = zones.length;
+    const { error } = await supabase.from("delivery_zones").insert({ name: n, fee: newZoneFee, sort_order: nextOrder });
+    if (error) return toast.error(error.message);
+    setNewZoneName(""); setNewZoneFee(0);
+    toast.success("Bairro adicionado");
+    load();
+  };
+  const updateZoneFee = async (id: string, fee: number) => {
+    const { error } = await supabase.from("delivery_zones").update({ fee }).eq("id", id);
+    if (error) return toast.error(error.message);
+    setZones((zs) => zs.map((z) => z.id === id ? { ...z, fee } : z));
+  };
+  const removeZone = async (id: string) => {
+    if (!confirm("Excluir bairro?")) return;
+    const { error } = await supabase.from("delivery_zones").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Bairro excluído");
+    load();
+  };
+
+  const saveSettings = async () => {
+    if (!settingsId) return;
+    const { error } = await supabase.from("store_settings").update({
+      store_name: storeName.trim() || "Minha Loja",
+      whatsapp_number: whatsapp.replace(/\D/g, "") || null,
+      welcome_message: welcome.trim() || null,
+      menu_open: menuOpen,
+    }).eq("id", settingsId);
+    if (error) return toast.error(error.message);
+    toast.success("Configurações salvas");
+  };
+
   return (
     <AppShell
       title="Admin — Produtos"
       action={
-        <div className="flex gap-2">
+        <div className="flex gap-1">
+          <Button size="icon" variant="outline" onClick={() => setSettingsOpen(true)} title="Configurações da loja">
+            <SettingsIcon className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="outline" onClick={() => setZonesOpen(true)} title="Bairros (entrega)">
+            <MapPin className="h-4 w-4" />
+          </Button>
           <Button size="icon" variant="outline" onClick={() => setCatOpen(true)} title="Categorias">
             <Tag className="h-4 w-4" />
           </Button>
