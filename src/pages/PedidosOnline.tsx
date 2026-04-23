@@ -214,7 +214,22 @@ export default function PedidosOnline() {
               </div>
             </div>
 
-            <div className="mt-3 space-y-1">
+            {/* Payment highlight */}
+            {(() => {
+              const pi = paymentInfo(o.payment_method);
+              return (
+                <div className={`mt-2 rounded-md px-3 py-2 ${pi.cls} flex items-center justify-between gap-2`}>
+                  <span className="font-display text-sm tracking-wide flex items-center gap-2">
+                    <span className="text-base">{pi.icon}</span> {pi.label}
+                  </span>
+                  {o.payment_method === "cash" && o.payment_change_for && (
+                    <span className="text-xs font-semibold">
+                      Troco p/ {formatBRL(o.payment_change_for)}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
               {o.items?.map((it) => (
                 <div key={it.id} className="flex justify-between text-sm">
                   <span>{it.quantity}x {it.product_name}</span>
