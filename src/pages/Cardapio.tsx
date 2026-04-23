@@ -41,6 +41,8 @@ export default function Cardapio() {
   const [complement, setComplement] = useState("");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "pix" | "card_delivery">("pix");
+  const [changeFor, setChangeFor] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [lastOrderNum, setLastOrderNum] = useState<number | null>(null);
