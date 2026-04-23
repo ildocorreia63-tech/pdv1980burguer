@@ -93,6 +93,47 @@ export default function Cardapio() {
 
   const paymentLabel = (m: string) => m === "cash" ? "Dinheiro" : m === "pix" ? "PIX" : "Cartão na entrega";
 
+  const openPixDialog = async () => {
+    if (!settings?.pix_key || !settings.pix_receiver_name || !settings.pix_city) {
+      return toast.error("Loja ainda não configurou os dados PIX");
+    }
+    if (total <= 0) return toast.error("Adicione itens ao carrinho");
+    try {
+      const payload = buildPixPayload({
+        pixKey: settings.pix_key,
+        receiverName: settings.pix_receiver_name,
+        city: settings.pix_city,
+        amount: total,
+        description: name ? `Pedido ${name}`.slice(0, 50) : undefined,
+      });
+      const dataUrl = await QRCode.toDataURL(payload, { width: 360, margin: 1, errorCorrectionLevel: "M" });
+      setPixPayload(payload);
+      setPixQrDataUrl(dataUrl);
+      setPixCopied(false);
+      setPixOpen(true);
+    } catch (err: any) {
+      toast.error(err.message ?? "Erro ao gerar QR Code");
+    }
+  };
+
+  const copyPix = async () => {
+    try {
+      await navigator.clipboard.writeText(pixPayload);
+      setPixCopied(true);
+      toast.success("Código PIX copiado");
+      setTimeout(() => setPixCopied(false), 2500);
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+
+  const downloadPixQr = () => {
+    const a = document.createElement("a");
+    a.href = pixQrDataUrl;
+    a.download = `pix-${formatBRL(total).replace(/\D/g, "")}.png`;
+    a.click();
+  };
+
   const submitOrder = async () => {
     if (cart.length === 0) return toast.error("Carrinho vazio");
     if (!name.trim()) return toast.error("Informe seu nome");
