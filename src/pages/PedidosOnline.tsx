@@ -28,7 +28,16 @@ type Order = {
   status: "pending" | "accepted" | "rejected" | "completed";
   sale_id: string | null;
   created_at: string;
+  payment_method: string | null;
+  payment_change_for: number | null;
   items?: OrderItem[];
+};
+
+const paymentInfo = (m: string | null) => {
+  if (m === "pix") return { label: "PAGO VIA PIX", icon: "💸", cls: "bg-success text-success-foreground" };
+  if (m === "cash") return { label: "DINHEIRO NA ENTREGA", icon: "💵", cls: "bg-accent text-accent-foreground" };
+  if (m === "card_delivery") return { label: "CARTÃO NA ENTREGA", icon: "💳", cls: "bg-accent text-accent-foreground" };
+  return { label: "A COMBINAR", icon: "❓", cls: "bg-muted text-muted-foreground" };
 };
 
 export default function PedidosOnline() {
