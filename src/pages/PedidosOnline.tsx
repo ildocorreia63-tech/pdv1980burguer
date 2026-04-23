@@ -28,7 +28,16 @@ type Order = {
   status: "pending" | "accepted" | "rejected" | "completed";
   sale_id: string | null;
   created_at: string;
+  payment_method: string | null;
+  payment_change_for: number | null;
   items?: OrderItem[];
+};
+
+const paymentInfo = (m: string | null) => {
+  if (m === "pix") return { label: "PAGO VIA PIX", icon: "💸", cls: "bg-success text-success-foreground" };
+  if (m === "cash") return { label: "DINHEIRO NA ENTREGA", icon: "💵", cls: "bg-accent text-accent-foreground" };
+  if (m === "card_delivery") return { label: "CARTÃO NA ENTREGA", icon: "💳", cls: "bg-accent text-accent-foreground" };
+  return { label: "A COMBINAR", icon: "❓", cls: "bg-muted text-muted-foreground" };
 };
 
 export default function PedidosOnline() {
@@ -204,6 +213,23 @@ export default function PedidosOnline() {
                 ) : <p className="font-medium">Retirada no local</p>}
               </div>
             </div>
+
+            {/* Payment highlight */}
+            {(() => {
+              const pi = paymentInfo(o.payment_method);
+              return (
+                <div className={`mt-2 rounded-md px-3 py-2 ${pi.cls} flex items-center justify-between gap-2`}>
+                  <span className="font-display text-sm tracking-wide flex items-center gap-2">
+                    <span className="text-base">{pi.icon}</span> {pi.label}
+                  </span>
+                  {o.payment_method === "cash" && o.payment_change_for && (
+                    <span className="text-xs font-semibold">
+                      Troco p/ {formatBRL(o.payment_change_for)}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="mt-3 space-y-1">
               {o.items?.map((it) => (
