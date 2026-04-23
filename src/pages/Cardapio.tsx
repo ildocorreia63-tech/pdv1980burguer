@@ -478,6 +478,45 @@ export default function Cardapio() {
       </Sheet>
 
       {/* Confirmação */}
+      {/* PIX QR Code */}
+      <Dialog open={pixOpen} onOpenChange={setPixOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="font-display text-2xl">Pague com PIX</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-white p-3 flex items-center justify-center">
+              {pixQrDataUrl && <img src={pixQrDataUrl} alt="QR Code PIX" className="w-full max-w-[260px] h-auto" />}
+            </div>
+            <div className="rounded-md bg-muted/60 p-2 text-center">
+              <p className="text-xs text-muted-foreground">Valor</p>
+              <p className="font-display text-2xl text-primary">{formatBRL(total)}</p>
+              {settings?.pix_receiver_name && (
+                <p className="text-[11px] text-muted-foreground mt-1">Recebedor: {settings.pix_receiver_name}</p>
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">PIX Copia e Cola</p>
+              <div className="rounded-md border border-border bg-muted/40 p-2 text-[11px] font-mono break-all max-h-24 overflow-y-auto">
+                {pixPayload}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={copyPix} className="gap-2">
+                {pixCopied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                {pixCopied ? "Copiado" : "Copiar código"}
+              </Button>
+              <Button variant="outline" onClick={downloadPixQr} className="gap-2">
+                <Download className="h-4 w-4" /> Baixar QR
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground text-center">
+              Após pagar, feche esta janela e envie o pedido pelo WhatsApp anexando o comprovante.
+            </p>
+            <Button className="w-full" onClick={() => setPixOpen(false)}>Já paguei, continuar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Pedido enviado! 🎉</DialogTitle></DialogHeader>
