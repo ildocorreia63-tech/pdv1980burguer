@@ -9,10 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import QRCode from "qrcode";
+import { buildPixPayload } from "@/lib/pix";
 
 type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null };
 type Category = { id: string; name: string };
