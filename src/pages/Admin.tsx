@@ -9,13 +9,14 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
-import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon, Upload, ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useRef } from "react";
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-type Product = { id: string; name: string; description: string | null; price: number; category_id: string | null; active: boolean };
+type Product = { id: string; name: string; description: string | null; price: number; category_id: string | null; active: boolean; image_url: string | null };
 type Category = { id: string; name: string; sort_order: number };
 
 function SortableCategoryRow({ cat, count, onRemove }: { cat: Category & { items: Product[] }; count: number; onRemove: () => void }) {
@@ -47,6 +48,9 @@ export default function Admin() {
   const [price, setPrice] = useState(0);
   const [catId, setCatId] = useState<string>("");
   const [active, setActive] = useState(true);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [catOpen, setCatOpen] = useState(false);
   const [newCatName, setNewCatName] = useState("");
 
@@ -111,15 +115,38 @@ export default function Admin() {
 
   const openNew = () => {
     setEditing(null);
-    setName(""); setDesc(""); setPrice(0); setCatId(cats[0]?.id ?? ""); setActive(true);
+    setName(""); setDesc(""); setPrice(0); setCatId(cats[0]?.id ?? ""); setActive(true); setImageUrl(null);
     setOpen(true);
   };
 
   const openEdit = (p: Product) => {
     setEditing(p);
     setName(p.name); setDesc(p.description ?? ""); setPrice(p.price);
-    setCatId(p.category_id ?? ""); setActive(p.active);
+    setCatId(p.category_id ?? ""); setActive(p.active); setImageUrl(p.image_url);
     setOpen(true);
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) return toast.error("Imagem muito grande (máx 5MB)");
+    if (!file.type.startsWith("image/")) return toast.error("Arquivo deve ser uma imagem");
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const path = `${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("product-images").upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+      setImageUrl(data.publicUrl);
+      toast.success("Imagem carregada");
+    } catch (err: any) {
+      toast.error(err.message ?? "Erro ao enviar imagem");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const save = async () => {
@@ -130,6 +157,7 @@ export default function Admin() {
       price,
       category_id: catId || null,
       active,
+      image_url: imageUrl,
     };
     const { error } = editing
       ? await supabase.from("products").update(payload).eq("id", editing.id)
