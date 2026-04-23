@@ -9,16 +9,18 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import QRCode from "qrcode";
+import { buildPixPayload } from "@/lib/pix";
 
 type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null };
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
 type CartItem = { product: Product; qty: number };
-type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean };
+type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; pix_key: string | null; pix_receiver_name: string | null; pix_city: string | null };
 
 export default function Cardapio() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -46,6 +48,10 @@ export default function Cardapio() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [lastOrderNum, setLastOrderNum] = useState<number | null>(null);
+  const [pixOpen, setPixOpen] = useState(false);
+  const [pixPayload, setPixPayload] = useState("");
+  const [pixQrDataUrl, setPixQrDataUrl] = useState("");
+  const [pixCopied, setPixCopied] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -53,7 +59,7 @@ export default function Cardapio() {
         supabase.from("products").select("id,name,price,description,category_id,image_url").eq("active", true).order("name"),
         supabase.from("categories").select("id,name").order("sort_order"),
         supabase.from("delivery_zones").select("id,name,fee").eq("active", true).order("sort_order"),
-        supabase.from("store_settings").select("store_name,whatsapp_number,welcome_message,menu_open").maybeSingle(),
+        supabase.from("store_settings").select("store_name,whatsapp_number,welcome_message,menu_open,pix_key,pix_receiver_name,pix_city").maybeSingle(),
       ]);
       setProducts((p.data ?? []).map((x) => ({ ...x, price: Number(x.price) })));
       setCats(c.data ?? []);
@@ -86,6 +92,47 @@ export default function Cardapio() {
   const total = subtotal + deliveryFee;
 
   const paymentLabel = (m: string) => m === "cash" ? "Dinheiro" : m === "pix" ? "PIX" : "Cartão na entrega";
+
+  const openPixDialog = async () => {
+    if (!settings?.pix_key || !settings.pix_receiver_name || !settings.pix_city) {
+      return toast.error("Loja ainda não configurou os dados PIX");
+    }
+    if (total <= 0) return toast.error("Adicione itens ao carrinho");
+    try {
+      const payload = buildPixPayload({
+        pixKey: settings.pix_key,
+        receiverName: settings.pix_receiver_name,
+        city: settings.pix_city,
+        amount: total,
+        description: name ? `Pedido ${name}`.slice(0, 50) : undefined,
+      });
+      const dataUrl = await QRCode.toDataURL(payload, { width: 360, margin: 1, errorCorrectionLevel: "M" });
+      setPixPayload(payload);
+      setPixQrDataUrl(dataUrl);
+      setPixCopied(false);
+      setPixOpen(true);
+    } catch (err: any) {
+      toast.error(err.message ?? "Erro ao gerar QR Code");
+    }
+  };
+
+  const copyPix = async () => {
+    try {
+      await navigator.clipboard.writeText(pixPayload);
+      setPixCopied(true);
+      toast.success("Código PIX copiado");
+      setTimeout(() => setPixCopied(false), 2500);
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+
+  const downloadPixQr = () => {
+    const a = document.createElement("a");
+    a.href = pixQrDataUrl;
+    a.download = `pix-${formatBRL(total).replace(/\D/g, "")}.png`;
+    a.click();
+  };
 
   const submitOrder = async () => {
     if (cart.length === 0) return toast.error("Carrinho vazio");
@@ -394,7 +441,24 @@ export default function Cardapio() {
                 </div>
               )}
               {paymentMethod === "pix" && (
-                <p className="text-[11px] text-muted-foreground">A chave PIX será enviada pelo WhatsApp para confirmar o pagamento.</p>
+                <div className="rounded-md bg-primary/5 border border-primary/20 p-2 space-y-2">
+                  {settings?.pix_key ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full gap-2 border-primary/40"
+                        onClick={openPixDialog}
+                        disabled={total <= 0}
+                      >
+                        <QrCode className="h-4 w-4" /> Mostrar QR Code PIX ({formatBRL(total)})
+                      </Button>
+                      <p className="text-[11px] text-muted-foreground text-center">Pague antes e envie o comprovante junto com o pedido pelo WhatsApp.</p>
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">A chave PIX será enviada pelo WhatsApp para confirmar o pagamento.</p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -412,6 +476,45 @@ export default function Cardapio() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Confirmação */}
+      {/* PIX QR Code */}
+      <Dialog open={pixOpen} onOpenChange={setPixOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="font-display text-2xl">Pague com PIX</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-white p-3 flex items-center justify-center">
+              {pixQrDataUrl && <img src={pixQrDataUrl} alt="QR Code PIX" className="w-full max-w-[260px] h-auto" />}
+            </div>
+            <div className="rounded-md bg-muted/60 p-2 text-center">
+              <p className="text-xs text-muted-foreground">Valor</p>
+              <p className="font-display text-2xl text-primary">{formatBRL(total)}</p>
+              {settings?.pix_receiver_name && (
+                <p className="text-[11px] text-muted-foreground mt-1">Recebedor: {settings.pix_receiver_name}</p>
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">PIX Copia e Cola</p>
+              <div className="rounded-md border border-border bg-muted/40 p-2 text-[11px] font-mono break-all max-h-24 overflow-y-auto">
+                {pixPayload}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={copyPix} className="gap-2">
+                {pixCopied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                {pixCopied ? "Copiado" : "Copiar código"}
+              </Button>
+              <Button variant="outline" onClick={downloadPixQr} className="gap-2">
+                <Download className="h-4 w-4" /> Baixar QR
+              </Button>
+            </div>
+            <p className="text-[11px] text-muted-foreground text-center">
+              Após pagar, feche esta janela e envie o pedido pelo WhatsApp anexando o comprovante.
+            </p>
+            <Button className="w-full" onClick={() => setPixOpen(false)}>Já paguei, continuar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmação */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
