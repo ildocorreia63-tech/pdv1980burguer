@@ -18,7 +18,7 @@ type Product = { id: string; name: string; price: number; description: string | 
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
 type CartItem = { product: Product; qty: number };
-type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean };
+type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; pix_key: string | null; pix_receiver_name: string | null; pix_city: string | null };
 
 export default function Cardapio() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -53,7 +53,7 @@ export default function Cardapio() {
         supabase.from("products").select("id,name,price,description,category_id,image_url").eq("active", true).order("name"),
         supabase.from("categories").select("id,name").order("sort_order"),
         supabase.from("delivery_zones").select("id,name,fee").eq("active", true).order("sort_order"),
-        supabase.from("store_settings").select("store_name,whatsapp_number,welcome_message,menu_open").maybeSingle(),
+        supabase.from("store_settings").select("store_name,whatsapp_number,welcome_message,menu_open,pix_key,pix_receiver_name,pix_city").maybeSingle(),
       ]);
       setProducts((p.data ?? []).map((x) => ({ ...x, price: Number(x.price) })));
       setCats(c.data ?? []);
