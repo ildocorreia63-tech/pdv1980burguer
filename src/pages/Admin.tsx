@@ -433,6 +433,25 @@ export default function Admin() {
               <Label htmlFor="menu_open">Cardápio aberto (recebendo pedidos)</Label>
               <Switch id="menu_open" checked={menuOpen} onCheckedChange={setMenuOpen} />
             </div>
+
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <p className="font-display text-sm">PIX (para gerar QR Code no cardápio)</p>
+              <div>
+                <Label>Chave PIX</Label>
+                <Input value={pixKey} onChange={(e) => setPixKey(e.target.value)} placeholder="CPF, e-mail, telefone ou aleatória" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>Nome do recebedor</Label>
+                  <Input value={pixReceiver} onChange={(e) => setPixReceiver(e.target.value)} placeholder="Ex: JOAO DA SILVA" maxLength={25} />
+                </div>
+                <div>
+                  <Label>Cidade</Label>
+                  <Input value={pixCity} onChange={(e) => setPixCity(e.target.value)} placeholder="SAO PAULO" maxLength={15} />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Sem acentos. Limite de 25 e 15 caracteres conforme padrão BR Code.</p>
+            </div>
             <div className="rounded-md bg-muted/50 p-2 text-xs">
               Link do cardápio: <code className="text-primary">{window.location.origin}/cardapio</code>
             </div>
