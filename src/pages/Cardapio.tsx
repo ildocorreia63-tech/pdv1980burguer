@@ -358,6 +358,46 @@ export default function Cardapio() {
 
             <div><Label>Observação</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Sem cebola, ponto da carne..." /></div>
 
+            {/* Forma de pagamento */}
+            <div className="space-y-2">
+              <Label>Forma de pagamento *</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { v: "pix", label: "PIX", icon: "💸" },
+                  { v: "cash", label: "Dinheiro", icon: "💵" },
+                  { v: "card_delivery", label: "Cartão", icon: "💳" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setPaymentMethod(opt.v)}
+                    className={cn(
+                      "rounded-lg border-2 p-2 flex flex-col items-center gap-0.5 transition",
+                      paymentMethod === opt.v ? "border-primary bg-primary/10" : "border-border bg-card"
+                    )}
+                  >
+                    <span className="text-lg leading-none">{opt.icon}</span>
+                    <span className="font-display text-xs">{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+              {paymentMethod === "cash" && (
+                <div>
+                  <Label className="text-xs">Troco para (opcional)</Label>
+                  <Input
+                    inputMode="decimal"
+                    placeholder="Ex: 50"
+                    value={changeFor}
+                    onChange={(e) => setChangeFor(e.target.value)}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">Deixe vazio se não precisar de troco.</p>
+                </div>
+              )}
+              {paymentMethod === "pix" && (
+                <p className="text-[11px] text-muted-foreground">A chave PIX será enviada pelo WhatsApp para confirmar o pagamento.</p>
+              )}
+            </div>
+
             <div className="rounded-lg bg-muted/50 p-3 space-y-1 text-sm">
               <div className="flex justify-between"><span>Subtotal</span><span>{formatBRL(subtotal)}</span></div>
               {orderType === "delivery" && <div className="flex justify-between"><span>Taxa de entrega</span><span>{formatBRL(deliveryFee)}</span></div>}
@@ -368,7 +408,7 @@ export default function Cardapio() {
               <MessageCircle className="h-5 w-5" />
               Enviar pedido pelo WhatsApp
             </Button>
-            <p className="text-[11px] text-muted-foreground text-center">Pagamento combinado pelo WhatsApp.</p>
+            <p className="text-[11px] text-muted-foreground text-center">Confirme o pagamento na conversa do WhatsApp.</p>
           </div>
         </SheetContent>
       </Sheet>
