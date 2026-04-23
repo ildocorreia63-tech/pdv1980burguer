@@ -497,6 +497,9 @@ export type Database = {
           created_at: string
           id: string
           menu_open: boolean
+          pix_city: string | null
+          pix_key: string | null
+          pix_receiver_name: string | null
           store_name: string
           updated_at: string
           welcome_message: string | null
@@ -506,6 +509,9 @@ export type Database = {
           created_at?: string
           id?: string
           menu_open?: boolean
+          pix_city?: string | null
+          pix_key?: string | null
+          pix_receiver_name?: string | null
           store_name?: string
           updated_at?: string
           welcome_message?: string | null
@@ -515,6 +521,9 @@ export type Database = {
           created_at?: string
           id?: string
           menu_open?: boolean
+          pix_city?: string | null
+          pix_key?: string | null
+          pix_receiver_name?: string | null
           store_name?: string
           updated_at?: string
           welcome_message?: string | null
