@@ -252,7 +252,14 @@ export default function Admin() {
             <h3 className="font-display text-lg mb-2 text-primary">{g.name}</h3>
             <div className="space-y-2">
               {g.items.map((p) => (
-                <Card key={p.id} className="p-3 shadow-card-retro flex items-center gap-2">
+                <Card key={p.id} className="p-3 shadow-card-retro flex items-center gap-3">
+                  <div className="h-12 w-12 shrink-0 rounded-md overflow-hidden bg-muted flex items-center justify-center">
+                    {p.image_url ? (
+                      <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <p className={`font-medium truncate ${!p.active && "line-through text-muted-foreground"}`}>{p.name}</p>
                     <p className="text-[11px] text-muted-foreground line-clamp-1">{p.description}</p>
@@ -272,6 +279,47 @@ export default function Admin() {
         <DialogContent>
           <DialogHeader><DialogTitle>{editing ? "Editar produto" : "Novo produto"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
+            <div>
+              <Label>Imagem do produto</Label>
+              <div className="mt-1 flex items-center gap-3">
+                <div className="h-20 w-20 shrink-0 rounded-md overflow-hidden bg-muted flex items-center justify-center border border-border">
+                  {imageUrl ? (
+                    <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <ImageIcon className="h-7 w-7 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 flex flex-col gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleImageUpload(f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="gap-2"
+                  >
+                    {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                    {imageUrl ? "Trocar imagem" : "Enviar imagem"}
+                  </Button>
+                  {imageUrl && (
+                    <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => setImageUrl(null)}>
+                      Remover
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
             <div><Label>Nome</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
             <div><Label>Descrição</Label><Textarea rows={2} value={desc} onChange={(e) => setDesc(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-2">
@@ -288,7 +336,7 @@ export default function Admin() {
               <Label htmlFor="active">Produto ativo</Label>
               <Switch id="active" checked={active} onCheckedChange={setActive} />
             </div>
-            <Button className="w-full" onClick={save}>Salvar</Button>
+            <Button className="w-full" onClick={save} disabled={uploading}>Salvar</Button>
           </div>
         </DialogContent>
       </Dialog>
