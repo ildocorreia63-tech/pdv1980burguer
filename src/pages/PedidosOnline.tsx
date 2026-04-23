@@ -230,6 +230,8 @@ export default function PedidosOnline() {
                 </div>
               );
             })()}
+
+            <div className="mt-3 space-y-1">
               {o.items?.map((it) => (
                 <div key={it.id} className="flex justify-between text-sm">
                   <span>{it.quantity}x {it.product_name}</span>
