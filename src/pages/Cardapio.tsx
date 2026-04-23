@@ -85,6 +85,8 @@ export default function Cardapio() {
   const deliveryFee = orderType === "delivery" ? (selectedZone?.fee ?? 0) : 0;
   const total = subtotal + deliveryFee;
 
+  const paymentLabel = (m: string) => m === "cash" ? "Dinheiro" : m === "pix" ? "PIX" : "Cartão na entrega";
+
   const submitOrder = async () => {
     if (cart.length === 0) return toast.error("Carrinho vazio");
     if (!name.trim()) return toast.error("Informe seu nome");
@@ -92,6 +94,10 @@ export default function Cardapio() {
     if (orderType === "delivery") {
       if (!zoneId) return toast.error("Selecione o bairro");
       if (!street.trim() || !number.trim()) return toast.error("Informe rua e número");
+    }
+    const changeForNum = paymentMethod === "cash" && changeFor ? Number(changeFor.replace(",", ".")) : null;
+    if (paymentMethod === "cash" && changeForNum !== null && (isNaN(changeForNum) || changeForNum < total)) {
+      return toast.error("Troco para um valor maior que o total");
     }
     setSubmitting(true);
     try {
@@ -111,7 +117,9 @@ export default function Cardapio() {
           subtotal,
           total,
           notes: notes.trim() || null,
-        })
+          payment_method: paymentMethod,
+          payment_change_for: changeForNum,
+        } as any)
         .select("id, order_number")
         .single();
       if (error) throw error;
@@ -146,6 +154,22 @@ export default function Cardapio() {
       lines.push(`*Subtotal:* ${formatBRL(subtotal)}`);
       if (deliveryFee > 0) lines.push(`*Taxa entrega:* ${formatBRL(deliveryFee)}`);
       lines.push(`*Total:* ${formatBRL(total)}`);
+      lines.push("");
+      // Highlighted payment block
+      lines.push("━━━━━━━━━━━━━━━");
+      if (paymentMethod === "pix") {
+        lines.push(`💸 *PAGO VIA PIX* ✅`);
+      } else if (paymentMethod === "cash") {
+        lines.push(`💵 *PAGAMENTO: DINHEIRO NA ENTREGA*`);
+        if (changeForNum) {
+          lines.push(`*Troco para:* ${formatBRL(changeForNum)} (levar ${formatBRL(changeForNum - total)})`);
+        } else {
+          lines.push(`*Não precisa de troco*`);
+        }
+      } else {
+        lines.push(`💳 *PAGAMENTO: CARTÃO NA ENTREGA*`);
+      }
+      lines.push("━━━━━━━━━━━━━━━");
       if (notes) {
         lines.push("");
         lines.push(`*Obs:* ${notes}`);
@@ -160,7 +184,7 @@ export default function Cardapio() {
       setCheckoutOpen(false);
       setCartOpen(false);
       setCart([]);
-      setName(""); setPhone(""); setStreet(""); setNumber(""); setComplement(""); setReference(""); setNotes(""); setZoneId("");
+      setName(""); setPhone(""); setStreet(""); setNumber(""); setComplement(""); setReference(""); setNotes(""); setZoneId(""); setChangeFor(""); setPaymentMethod("pix");
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao enviar pedido");
     } finally {
