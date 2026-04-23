@@ -400,7 +400,24 @@ export default function Cardapio() {
                 </div>
               )}
               {paymentMethod === "pix" && (
-                <p className="text-[11px] text-muted-foreground">A chave PIX será enviada pelo WhatsApp para confirmar o pagamento.</p>
+                <div className="rounded-md bg-primary/5 border border-primary/20 p-2 space-y-2">
+                  {settings?.pix_key ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full gap-2 border-primary/40"
+                        onClick={openPixDialog}
+                        disabled={total <= 0}
+                      >
+                        <QrCode className="h-4 w-4" /> Mostrar QR Code PIX ({formatBRL(total)})
+                      </Button>
+                      <p className="text-[11px] text-muted-foreground text-center">Pague antes e envie o comprovante junto com o pedido pelo WhatsApp.</p>
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">A chave PIX será enviada pelo WhatsApp para confirmar o pagamento.</p>
+                  )}
+                </div>
               )}
             </div>
 
