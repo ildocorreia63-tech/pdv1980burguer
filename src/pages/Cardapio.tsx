@@ -48,6 +48,10 @@ export default function Cardapio() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [lastOrderNum, setLastOrderNum] = useState<number | null>(null);
+  const [pixOpen, setPixOpen] = useState(false);
+  const [pixPayload, setPixPayload] = useState("");
+  const [pixQrDataUrl, setPixQrDataUrl] = useState("");
+  const [pixCopied, setPixCopied] = useState(false);
 
   useEffect(() => {
     (async () => {
