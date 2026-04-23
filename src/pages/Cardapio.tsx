@@ -14,7 +14,7 @@ import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null };
+type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null };
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
 type CartItem = { product: Product; qty: number };
@@ -48,7 +48,7 @@ export default function Cardapio() {
   useEffect(() => {
     (async () => {
       const [p, c, z, s] = await Promise.all([
-        supabase.from("products").select("id,name,price,description,category_id").eq("active", true).order("name"),
+        supabase.from("products").select("id,name,price,description,category_id,image_url").eq("active", true).order("name"),
         supabase.from("categories").select("id,name").order("sort_order"),
         supabase.from("delivery_zones").select("id,name,fee").eq("active", true).order("sort_order"),
         supabase.from("store_settings").select("store_name,whatsapp_number,welcome_message,menu_open").maybeSingle(),
@@ -209,10 +209,19 @@ export default function Cardapio() {
       <main className="mx-auto max-w-2xl px-4 py-4">
         <div className="grid grid-cols-2 gap-3">
           {filtered.map((p) => (
-            <button key={p.id} onClick={() => addToCart(p)} className="text-left rounded-xl border border-border bg-card p-3 shadow-card-retro active:scale-[0.97] transition">
-              <p className="font-display text-base leading-tight line-clamp-2">{p.name}</p>
-              <p className="mt-1 text-[10px] text-muted-foreground line-clamp-2 min-h-[28px]">{p.description}</p>
-              <p className="mt-2 font-display text-lg text-primary">{formatBRL(p.price)}</p>
+            <button key={p.id} onClick={() => addToCart(p)} className="text-left rounded-xl border border-border bg-card overflow-hidden shadow-card-retro active:scale-[0.97] transition flex flex-col">
+              <div className="aspect-square w-full bg-muted overflow-hidden">
+                {p.image_url ? (
+                  <img src={p.image_url} alt={p.name} loading="lazy" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-muted-foreground text-[10px]">Sem foto</div>
+                )}
+              </div>
+              <div className="p-3 flex-1 flex flex-col">
+                <p className="font-display text-base leading-tight line-clamp-2">{p.name}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground line-clamp-2 min-h-[28px]">{p.description}</p>
+                <p className="mt-2 font-display text-lg text-primary">{formatBRL(p.price)}</p>
+              </div>
             </button>
           ))}
         </div>
