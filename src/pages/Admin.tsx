@@ -66,6 +66,9 @@ export default function Admin() {
   const [whatsapp, setWhatsapp] = useState("");
   const [welcome, setWelcome] = useState("");
   const [menuOpen, setMenuOpen] = useState(true);
+  const [pixKey, setPixKey] = useState("");
+  const [pixReceiver, setPixReceiver] = useState("");
+  const [pixCity, setPixCity] = useState("");
   const [settingsId, setSettingsId] = useState<string | null>(null);
 
   const load = async () => {
@@ -79,11 +82,15 @@ export default function Admin() {
     setCats((c ?? []) as Category[]);
     setZones((z ?? []).map((x: any) => ({ id: x.id, name: x.name, fee: Number(x.fee), active: x.active })));
     if (s) {
-      setSettingsId(s.id);
-      setStoreName(s.store_name ?? "");
-      setWhatsapp(s.whatsapp_number ?? "");
-      setWelcome(s.welcome_message ?? "");
-      setMenuOpen(s.menu_open);
+      const sx = s as any;
+      setSettingsId(sx.id);
+      setStoreName(sx.store_name ?? "");
+      setWhatsapp(sx.whatsapp_number ?? "");
+      setWelcome(sx.welcome_message ?? "");
+      setMenuOpen(sx.menu_open);
+      setPixKey(sx.pix_key ?? "");
+      setPixReceiver(sx.pix_receiver_name ?? "");
+      setPixCity(sx.pix_city ?? "");
     }
   };
 
@@ -221,7 +228,10 @@ export default function Admin() {
       whatsapp_number: whatsapp.replace(/\D/g, "") || null,
       welcome_message: welcome.trim() || null,
       menu_open: menuOpen,
-    }).eq("id", settingsId);
+      pix_key: pixKey.trim() || null,
+      pix_receiver_name: pixReceiver.trim() || null,
+      pix_city: pixCity.trim() || null,
+    } as any).eq("id", settingsId);
     if (error) return toast.error(error.message);
     toast.success("Configurações salvas");
   };
