@@ -240,12 +240,18 @@ export default function Cardapio() {
     }
   };
 
-  if (settings && !settings.menu_open) {
+  const openByHours = isOpenNow(settings?.business_hours ?? null);
+  const isClosed = settings ? (!settings.menu_open || !openByHours) : false;
+  const closedReason = settings && !settings.menu_open
+    ? "Estamos fechados no momento. Volte mais tarde!"
+    : nextOpeningLabel(settings?.business_hours ?? null) || "Estamos fora do horário de atendimento.";
+
+  if (isClosed) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-        <img src={logo} alt={settings.store_name} className="h-24 w-24 rounded-2xl mb-4" />
-        <h1 className="font-display text-3xl">{settings.store_name}</h1>
-        <p className="mt-3 text-muted-foreground">Estamos fechados no momento. Volte mais tarde!</p>
+        <img src={logo} alt={settings?.store_name} className="h-24 w-24 rounded-2xl mb-4" />
+        <h1 className="font-display text-3xl">{settings?.store_name}</h1>
+        <p className="mt-3 text-muted-foreground">{closedReason}</p>
       </div>
     );
   }
