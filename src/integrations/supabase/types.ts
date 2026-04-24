@@ -184,6 +184,8 @@ export type Database = {
           address_number: string | null
           address_reference: string | null
           address_street: string | null
+          asaas_invoice_url: string | null
+          asaas_payment_id: string | null
           created_at: string
           customer_name: string
           customer_phone: string
@@ -195,6 +197,7 @@ export type Database = {
           order_number: number
           order_type: Database["public"]["Enums"]["online_order_type"]
           payment_change_for: number | null
+          payment_confirmed_at: string | null
           payment_method: string | null
           sale_id: string | null
           status: Database["public"]["Enums"]["online_order_status"]
@@ -209,6 +212,8 @@ export type Database = {
           address_number?: string | null
           address_reference?: string | null
           address_street?: string | null
+          asaas_invoice_url?: string | null
+          asaas_payment_id?: string | null
           created_at?: string
           customer_name: string
           customer_phone: string
@@ -220,6 +225,7 @@ export type Database = {
           order_number?: number
           order_type: Database["public"]["Enums"]["online_order_type"]
           payment_change_for?: number | null
+          payment_confirmed_at?: string | null
           payment_method?: string | null
           sale_id?: string | null
           status?: Database["public"]["Enums"]["online_order_status"]
@@ -234,6 +240,8 @@ export type Database = {
           address_number?: string | null
           address_reference?: string | null
           address_street?: string | null
+          asaas_invoice_url?: string | null
+          asaas_payment_id?: string | null
           created_at?: string
           customer_name?: string
           customer_phone?: string
@@ -245,6 +253,7 @@ export type Database = {
           order_number?: number
           order_type?: Database["public"]["Enums"]["online_order_type"]
           payment_change_for?: number | null
+          payment_confirmed_at?: string | null
           payment_method?: string | null
           sale_id?: string | null
           status?: Database["public"]["Enums"]["online_order_status"]
@@ -571,7 +580,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "operator"
-      online_order_status: "pending" | "accepted" | "rejected" | "completed"
+      online_order_status:
+        | "pending"
+        | "accepted"
+        | "rejected"
+        | "completed"
+        | "pending_payment"
       online_order_type: "delivery" | "pickup"
       payment_method:
         | "cash"
@@ -710,7 +724,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "operator"],
-      online_order_status: ["pending", "accepted", "rejected", "completed"],
+      online_order_status: [
+        "pending",
+        "accepted",
+        "rejected",
+        "completed",
+        "pending_payment",
+      ],
       online_order_type: ["delivery", "pickup"],
       payment_method: [
         "cash",
