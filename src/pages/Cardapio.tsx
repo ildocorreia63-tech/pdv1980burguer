@@ -60,7 +60,7 @@ export default function Cardapio() {
         supabase.from("products").select("id,name,price,description,category_id,image_url").eq("active", true).order("name"),
         supabase.from("categories").select("id,name").order("sort_order"),
         supabase.from("delivery_zones").select("id,name,fee").eq("active", true).order("sort_order"),
-        supabase.from("store_settings").select("store_name,whatsapp_number,welcome_message,menu_open,pix_key,pix_receiver_name,pix_city").maybeSingle(),
+        supabase.from("store_settings").select("store_name,whatsapp_number,welcome_message,menu_open,pix_key,pix_receiver_name,pix_city,business_hours").maybeSingle(),
       ]);
       setProducts((p.data ?? []).map((x) => ({ ...x, price: Number(x.price) })));
       setCats(c.data ?? []);
