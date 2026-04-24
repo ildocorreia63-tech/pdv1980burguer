@@ -15,12 +15,13 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { buildPixPayload } from "@/lib/pix";
+import { BusinessHours, isOpenNow, nextOpeningLabel } from "@/lib/businessHours";
 
 type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null };
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
 type CartItem = { product: Product; qty: number };
-type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; pix_key: string | null; pix_receiver_name: string | null; pix_city: string | null };
+type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; pix_key: string | null; pix_receiver_name: string | null; pix_city: string | null; business_hours: BusinessHours | null };
 
 export default function Cardapio() {
   const [products, setProducts] = useState<Product[]>([]);
