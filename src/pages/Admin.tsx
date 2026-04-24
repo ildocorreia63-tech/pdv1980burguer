@@ -438,8 +438,39 @@ export default function Admin() {
             </div>
             <div><Label>Mensagem de boas-vindas</Label><Textarea rows={2} value={welcome} onChange={(e) => setWelcome(e.target.value)} /></div>
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
-              <Label htmlFor="menu_open">Cardápio aberto (recebendo pedidos)</Label>
+              <div>
+                <Label htmlFor="menu_open">Cardápio aberto (recebendo pedidos)</Label>
+                <p className="text-[11px] text-muted-foreground">Desative para fechar manualmente.</p>
+              </div>
               <Switch id="menu_open" checked={menuOpen} onCheckedChange={setMenuOpen} />
+            </div>
+
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                <p className="font-display text-sm">Horário de funcionamento</p>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Fora do horário, o cardápio fecha automaticamente. Use 18:00 → 02:00 para virada de dia.</p>
+              <div className="space-y-2 pt-1">
+                {WEEKDAYS.map((d) => {
+                  const cfg = hours[d.key];
+                  return (
+                    <div key={d.key} className="flex items-center gap-2">
+                      <div className="w-12 text-xs font-medium">{d.short}</div>
+                      <Switch checked={cfg?.open ?? false} onCheckedChange={(v) => updateDay(d.key, { open: v })} />
+                      {cfg?.open ? (
+                        <div className="flex items-center gap-1 flex-1">
+                          <Input type="time" value={cfg.from} onChange={(e) => updateDay(d.key, { from: e.target.value })} className="h-8 px-2 text-xs" />
+                          <span className="text-xs text-muted-foreground">às</span>
+                          <Input type="time" value={cfg.to} onChange={(e) => updateDay(d.key, { to: e.target.value })} className="h-8 px-2 text-xs" />
+                        </div>
+                      ) : (
+                        <div className="flex-1 text-xs text-muted-foreground italic">Fechado</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="rounded-lg border border-border p-3 space-y-2">
