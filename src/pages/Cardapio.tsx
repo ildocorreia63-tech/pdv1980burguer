@@ -54,6 +54,12 @@ export default function Cardapio() {
   const [pixQrDataUrl, setPixQrDataUrl] = useState("");
   const [pixCopied, setPixCopied] = useState(false);
 
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     (async () => {
       const [p, c, z, s] = await Promise.all([
