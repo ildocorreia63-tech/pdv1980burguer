@@ -15,12 +15,13 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { buildPixPayload } from "@/lib/pix";
+import { BusinessHours, isOpenNow, nextOpeningLabel } from "@/lib/businessHours";
 
 type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null };
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
 type CartItem = { product: Product; qty: number };
-type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; pix_key: string | null; pix_receiver_name: string | null; pix_city: string | null };
+type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; pix_key: string | null; pix_receiver_name: string | null; pix_city: string | null; business_hours: BusinessHours | null };
 
 export default function Cardapio() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -53,13 +54,19 @@ export default function Cardapio() {
   const [pixQrDataUrl, setPixQrDataUrl] = useState("");
   const [pixCopied, setPixCopied] = useState(false);
 
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     (async () => {
       const [p, c, z, s] = await Promise.all([
         supabase.from("products").select("id,name,price,description,category_id,image_url").eq("active", true).order("name"),
         supabase.from("categories").select("id,name").order("sort_order"),
         supabase.from("delivery_zones").select("id,name,fee").eq("active", true).order("sort_order"),
-        supabase.from("store_settings").select("store_name,whatsapp_number,welcome_message,menu_open,pix_key,pix_receiver_name,pix_city").maybeSingle(),
+        supabase.from("store_settings").select("store_name,whatsapp_number,welcome_message,menu_open,pix_key,pix_receiver_name,pix_city,business_hours").maybeSingle(),
       ]);
       setProducts((p.data ?? []).map((x) => ({ ...x, price: Number(x.price) })));
       setCats(c.data ?? []);
@@ -239,12 +246,18 @@ export default function Cardapio() {
     }
   };
 
-  if (settings && !settings.menu_open) {
+  const openByHours = isOpenNow(settings?.business_hours ?? null);
+  const isClosed = settings ? (!settings.menu_open || !openByHours) : false;
+  const closedReason = settings && !settings.menu_open
+    ? "Estamos fechados no momento. Volte mais tarde!"
+    : nextOpeningLabel(settings?.business_hours ?? null) || "Estamos fora do horário de atendimento.";
+
+  if (isClosed) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-        <img src={logo} alt={settings.store_name} className="h-24 w-24 rounded-2xl mb-4" />
-        <h1 className="font-display text-3xl">{settings.store_name}</h1>
-        <p className="mt-3 text-muted-foreground">Estamos fechados no momento. Volte mais tarde!</p>
+        <img src={logo} alt={settings?.store_name} className="h-24 w-24 rounded-2xl mb-4" />
+        <h1 className="font-display text-3xl">{settings?.store_name}</h1>
+        <p className="mt-3 text-muted-foreground">{closedReason}</p>
       </div>
     );
   }

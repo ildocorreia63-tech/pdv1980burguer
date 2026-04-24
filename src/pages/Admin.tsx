@@ -9,8 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
-import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon, Upload, ImageIcon, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon, Upload, ImageIcon, Loader2, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { BusinessHours, DEFAULT_HOURS, WEEKDAYS } from "@/lib/businessHours";
 
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -69,6 +70,7 @@ export default function Admin() {
   const [pixKey, setPixKey] = useState("");
   const [pixReceiver, setPixReceiver] = useState("");
   const [pixCity, setPixCity] = useState("");
+  const [hours, setHours] = useState<BusinessHours>(DEFAULT_HOURS);
   const [settingsId, setSettingsId] = useState<string | null>(null);
 
   const load = async () => {
@@ -91,6 +93,7 @@ export default function Admin() {
       setPixKey(sx.pix_key ?? "");
       setPixReceiver(sx.pix_receiver_name ?? "");
       setPixCity(sx.pix_city ?? "");
+      setHours({ ...DEFAULT_HOURS, ...(sx.business_hours ?? {}) });
     }
   };
 
@@ -231,9 +234,14 @@ export default function Admin() {
       pix_key: pixKey.trim() || null,
       pix_receiver_name: pixReceiver.trim() || null,
       pix_city: pixCity.trim() || null,
+      business_hours: hours,
     } as any).eq("id", settingsId);
     if (error) return toast.error(error.message);
     toast.success("Configurações salvas");
+  };
+
+  const updateDay = (key: string, patch: Partial<BusinessHours[string]>) => {
+    setHours((h) => ({ ...h, [key]: { ...h[key], ...patch } }));
   };
 
   return (
@@ -430,8 +438,39 @@ export default function Admin() {
             </div>
             <div><Label>Mensagem de boas-vindas</Label><Textarea rows={2} value={welcome} onChange={(e) => setWelcome(e.target.value)} /></div>
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
-              <Label htmlFor="menu_open">Cardápio aberto (recebendo pedidos)</Label>
+              <div>
+                <Label htmlFor="menu_open">Cardápio aberto (recebendo pedidos)</Label>
+                <p className="text-[11px] text-muted-foreground">Desative para fechar manualmente.</p>
+              </div>
               <Switch id="menu_open" checked={menuOpen} onCheckedChange={setMenuOpen} />
+            </div>
+
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                <p className="font-display text-sm">Horário de funcionamento</p>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Fora do horário, o cardápio fecha automaticamente. Use 18:00 → 02:00 para virada de dia.</p>
+              <div className="space-y-2 pt-1">
+                {WEEKDAYS.map((d) => {
+                  const cfg = hours[d.key];
+                  return (
+                    <div key={d.key} className="flex items-center gap-2">
+                      <div className="w-12 text-xs font-medium">{d.short}</div>
+                      <Switch checked={cfg?.open ?? false} onCheckedChange={(v) => updateDay(d.key, { open: v })} />
+                      {cfg?.open ? (
+                        <div className="flex items-center gap-1 flex-1">
+                          <Input type="time" value={cfg.from} onChange={(e) => updateDay(d.key, { from: e.target.value })} className="h-8 px-2 text-xs" />
+                          <span className="text-xs text-muted-foreground">às</span>
+                          <Input type="time" value={cfg.to} onChange={(e) => updateDay(d.key, { to: e.target.value })} className="h-8 px-2 text-xs" />
+                        </div>
+                      ) : (
+                        <div className="flex-1 text-xs text-muted-foreground italic">Fechado</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="rounded-lg border border-border p-3 space-y-2">
