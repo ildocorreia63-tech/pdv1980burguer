@@ -234,9 +234,14 @@ export default function Admin() {
       pix_key: pixKey.trim() || null,
       pix_receiver_name: pixReceiver.trim() || null,
       pix_city: pixCity.trim() || null,
+      business_hours: hours,
     } as any).eq("id", settingsId);
     if (error) return toast.error(error.message);
     toast.success("Configurações salvas");
+  };
+
+  const updateDay = (key: string, patch: Partial<BusinessHours[string]>) => {
+    setHours((h) => ({ ...h, [key]: { ...h[key], ...patch } }));
   };
 
   return (
