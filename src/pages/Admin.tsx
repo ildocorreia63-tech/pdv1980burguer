@@ -70,6 +70,7 @@ export default function Admin() {
   const [pixKey, setPixKey] = useState("");
   const [pixReceiver, setPixReceiver] = useState("");
   const [pixCity, setPixCity] = useState("");
+  const [hours, setHours] = useState<BusinessHours>(DEFAULT_HOURS);
   const [settingsId, setSettingsId] = useState<string | null>(null);
 
   const load = async () => {
