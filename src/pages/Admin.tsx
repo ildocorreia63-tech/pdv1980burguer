@@ -93,6 +93,7 @@ export default function Admin() {
       setPixKey(sx.pix_key ?? "");
       setPixReceiver(sx.pix_receiver_name ?? "");
       setPixCity(sx.pix_city ?? "");
+      setHours({ ...DEFAULT_HOURS, ...(sx.business_hours ?? {}) });
     }
   };
 
