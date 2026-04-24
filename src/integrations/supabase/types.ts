@@ -494,6 +494,7 @@ export type Database = {
       }
       store_settings: {
         Row: {
+          business_hours: Json
           created_at: string
           id: string
           menu_open: boolean
@@ -506,6 +507,7 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          business_hours?: Json
           created_at?: string
           id?: string
           menu_open?: boolean
@@ -518,6 +520,7 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          business_hours?: Json
           created_at?: string
           id?: string
           menu_open?: boolean
