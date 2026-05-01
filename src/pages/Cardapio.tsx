@@ -53,6 +53,9 @@ export default function Cardapio() {
   const [pixPayload, setPixPayload] = useState("");
   const [pixQrDataUrl, setPixQrDataUrl] = useState("");
   const [pixCopied, setPixCopied] = useState(false);
+  const [pixPaid, setPixPaid] = useState(false);
+  const [pixChecking, setPixChecking] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<{ id: string; order_number: number } | null>(null);
 
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -100,29 +103,6 @@ export default function Cardapio() {
 
   const paymentLabel = (m: string) => m === "cash" ? "Dinheiro" : m === "pix" ? "PIX" : "Cartão na entrega";
 
-  const openPixDialog = async () => {
-    if (!settings?.pix_key || !settings.pix_receiver_name || !settings.pix_city) {
-      return toast.error("Loja ainda não configurou os dados PIX");
-    }
-    if (total <= 0) return toast.error("Adicione itens ao carrinho");
-    try {
-      const payload = buildPixPayload({
-        pixKey: settings.pix_key,
-        receiverName: settings.pix_receiver_name,
-        city: settings.pix_city,
-        amount: total,
-        description: name ? `Pedido ${name}`.slice(0, 50) : undefined,
-      });
-      const dataUrl = await QRCode.toDataURL(payload, { width: 360, margin: 1, errorCorrectionLevel: "M" });
-      setPixPayload(payload);
-      setPixQrDataUrl(dataUrl);
-      setPixCopied(false);
-      setPixOpen(true);
-    } catch (err: any) {
-      toast.error(err.message ?? "Erro ao gerar QR Code");
-    }
-  };
-
   const copyPix = async () => {
     try {
       await navigator.clipboard.writeText(pixPayload);
@@ -139,6 +119,83 @@ export default function Cardapio() {
     a.href = pixQrDataUrl;
     a.download = `pix-${formatBRL(total).replace(/\D/g, "")}.png`;
     a.click();
+  };
+
+  // Poll Asaas for payment confirmation while QR dialog is open
+  useEffect(() => {
+    if (!pixOpen || !pendingOrder || pixPaid) return;
+    let cancelled = false;
+    const tick = async () => {
+      if (cancelled) return;
+      setPixChecking(true);
+      try {
+        const { data } = await supabase.functions.invoke("asaas-check-payment", {
+          body: { order_id: pendingOrder.id },
+        });
+        if (!cancelled && data?.paid) {
+          setPixPaid(true);
+          toast.success("Pagamento confirmado! ✅");
+        }
+      } catch {/* ignore */}
+      setPixChecking(false);
+    };
+    tick();
+    const id = setInterval(tick, 5000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [pixOpen, pendingOrder, pixPaid]);
+
+  const buildWhatsappMessage = (orderNumber: number, paid: boolean) => {
+    const lines: string[] = [];
+    lines.push(`*Novo Pedido #${orderNumber}*`);
+    lines.push(`*Cliente:* ${name.trim()}`);
+    lines.push(`*Telefone:* ${phone.trim()}`);
+    lines.push("");
+    lines.push(orderType === "delivery" ? "*Entrega*" : "*Retirada no local*");
+    if (orderType === "delivery") {
+      lines.push(`Bairro: ${selectedZone?.name} (${formatBRL(deliveryFee)})`);
+      lines.push(`Endereço: ${street}, ${number}${complement ? ` - ${complement}` : ""}`);
+      if (reference) lines.push(`Referência: ${reference}`);
+    }
+    lines.push("");
+    lines.push("*Itens:*");
+    cart.forEach((c) => lines.push(`• ${c.qty}x ${c.product.name} — ${formatBRL(c.product.price * c.qty)}`));
+    lines.push("");
+    lines.push(`*Subtotal:* ${formatBRL(subtotal)}`);
+    if (deliveryFee > 0) lines.push(`*Taxa entrega:* ${formatBRL(deliveryFee)}`);
+    lines.push(`*Total:* ${formatBRL(total)}`);
+    lines.push("");
+    lines.push("━━━━━━━━━━━━━━━");
+    const changeForNum = paymentMethod === "cash" && changeFor ? Number(changeFor.replace(",", ".")) : null;
+    if (paymentMethod === "pix") {
+      lines.push(paid ? `💸 *PIX PAGO E CONFIRMADO PELO BANCO* ✅` : `💸 *PIX — aguardando pagamento*`);
+    } else if (paymentMethod === "cash") {
+      lines.push(`💵 *PAGAMENTO: DINHEIRO NA ENTREGA*`);
+      if (changeForNum) lines.push(`*Troco para:* ${formatBRL(changeForNum)} (levar ${formatBRL(changeForNum - total)})`);
+      else lines.push(`*Não precisa de troco*`);
+    } else {
+      lines.push(`💳 *PAGAMENTO: CARTÃO NA ENTREGA*`);
+    }
+    lines.push("━━━━━━━━━━━━━━━");
+    if (notes) { lines.push(""); lines.push(`*Obs:* ${notes}`); }
+    return lines.join("\n");
+  };
+
+  const sendWhatsapp = (orderNumber: number, paid: boolean) => {
+    const msg = encodeURIComponent(buildWhatsappMessage(orderNumber, paid));
+    const wpp = (settings?.whatsapp_number ?? "").replace(/\D/g, "");
+    const url = wpp ? `https://wa.me/${wpp}?text=${msg}` : `https://wa.me/?text=${msg}`;
+    window.open(url, "_blank");
+  };
+
+  const finishAndReset = (orderNumber: number) => {
+    setLastOrderNum(orderNumber);
+    setConfirmOpen(true);
+    setPixOpen(false);
+    setCheckoutOpen(false);
+    setCartOpen(false);
+    setCart([]);
+    setName(""); setPhone(""); setStreet(""); setNumber(""); setComplement(""); setReference(""); setNotes(""); setZoneId(""); setChangeFor(""); setPaymentMethod("pix");
+    setPendingOrder(null); setPixPaid(false); setPixPayload(""); setPixQrDataUrl("");
   };
 
   const submitOrder = async () => {
@@ -173,6 +230,7 @@ export default function Cardapio() {
           notes: notes.trim() || null,
           payment_method: paymentMethod,
           payment_change_for: changeForNum,
+          status: paymentMethod === "pix" ? "pending_payment" : "pending",
         } as any)
         .select("id, order_number")
         .single();
@@ -189,62 +247,29 @@ export default function Cardapio() {
       const { error: e2 } = await supabase.from("online_order_items").insert(items);
       if (e2) throw e2;
 
-      // Build WhatsApp message
-      const lines: string[] = [];
-      lines.push(`*Novo Pedido #${order.order_number}*`);
-      lines.push(`*Cliente:* ${name.trim()}`);
-      lines.push(`*Telefone:* ${phone.trim()}`);
-      lines.push("");
-      lines.push(orderType === "delivery" ? "*Entrega*" : "*Retirada no local*");
-      if (orderType === "delivery") {
-        lines.push(`Bairro: ${selectedZone?.name} (${formatBRL(deliveryFee)})`);
-        lines.push(`Endereço: ${street}, ${number}${complement ? ` - ${complement}` : ""}`);
-        if (reference) lines.push(`Referência: ${reference}`);
-      }
-      lines.push("");
-      lines.push("*Itens:*");
-      cart.forEach((c) => lines.push(`• ${c.qty}x ${c.product.name} — ${formatBRL(c.product.price * c.qty)}`));
-      lines.push("");
-      lines.push(`*Subtotal:* ${formatBRL(subtotal)}`);
-      if (deliveryFee > 0) lines.push(`*Taxa entrega:* ${formatBRL(deliveryFee)}`);
-      lines.push(`*Total:* ${formatBRL(total)}`);
-      lines.push("");
-      // Highlighted payment block
-      lines.push("━━━━━━━━━━━━━━━");
       if (paymentMethod === "pix") {
-        lines.push(`💸 *PAGO VIA PIX* ✅`);
-      } else if (paymentMethod === "cash") {
-        lines.push(`💵 *PAGAMENTO: DINHEIRO NA ENTREGA*`);
-        if (changeForNum) {
-          lines.push(`*Troco para:* ${formatBRL(changeForNum)} (levar ${formatBRL(changeForNum - total)})`);
-        } else {
-          lines.push(`*Não precisa de troco*`);
-        }
+        // Create Asaas charge and open QR dialog
+        const { data: pix, error: pixErr } = await supabase.functions.invoke("asaas-create-pix", {
+          body: { order_id: order.id },
+        });
+        if (pixErr || pix?.error) throw new Error(pix?.error || pixErr?.message || "Erro ao gerar PIX");
+        setPixPayload(pix.payload);
+        setPixQrDataUrl(`data:image/png;base64,${pix.qr_code}`);
+        setPendingOrder({ id: order.id, order_number: order.order_number });
+        setPixPaid(false);
+        setPixCopied(false);
+        setPixOpen(true);
       } else {
-        lines.push(`💳 *PAGAMENTO: CARTÃO NA ENTREGA*`);
+        sendWhatsapp(order.order_number, false);
+        finishAndReset(order.order_number);
       }
-      lines.push("━━━━━━━━━━━━━━━");
-      if (notes) {
-        lines.push("");
-        lines.push(`*Obs:* ${notes}`);
-      }
-      const msg = encodeURIComponent(lines.join("\n"));
-      const wpp = (settings?.whatsapp_number ?? "").replace(/\D/g, "");
-      const url = wpp ? `https://wa.me/${wpp}?text=${msg}` : `https://wa.me/?text=${msg}`;
-      window.open(url, "_blank");
-
-      setLastOrderNum(order.order_number);
-      setConfirmOpen(true);
-      setCheckoutOpen(false);
-      setCartOpen(false);
-      setCart([]);
-      setName(""); setPhone(""); setStreet(""); setNumber(""); setComplement(""); setReference(""); setNotes(""); setZoneId(""); setChangeFor(""); setPaymentMethod("pix");
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao enviar pedido");
     } finally {
       setSubmitting(false);
     }
   };
+
 
   const openByHours = isOpenNow(settings?.business_hours ?? null);
   const isClosed = settings ? (!settings.menu_open || !openByHours) : false;
@@ -454,23 +479,10 @@ export default function Cardapio() {
                 </div>
               )}
               {paymentMethod === "pix" && (
-                <div className="rounded-md bg-primary/5 border border-primary/20 p-2 space-y-2">
-                  {settings?.pix_key ? (
-                    <>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full gap-2 border-primary/40"
-                        onClick={openPixDialog}
-                        disabled={total <= 0}
-                      >
-                        <QrCode className="h-4 w-4" /> Mostrar QR Code PIX ({formatBRL(total)})
-                      </Button>
-                      <p className="text-[11px] text-muted-foreground text-center">Pague antes e envie o comprovante junto com o pedido pelo WhatsApp.</p>
-                    </>
-                  ) : (
-                    <p className="text-[11px] text-muted-foreground">A chave PIX será enviada pelo WhatsApp para confirmar o pagamento.</p>
-                  )}
+                <div className="rounded-md bg-primary/5 border border-primary/20 p-2 space-y-1">
+                  <p className="text-[11px] text-muted-foreground">
+                    💡 Após enviar, geramos um QR Code PIX. <strong>O pagamento é confirmado automaticamente pelo banco</strong> e o pedido segue para o WhatsApp.
+                  </p>
                 </div>
               )}
             </div>
@@ -482,49 +494,76 @@ export default function Cardapio() {
             </div>
 
             <Button className="w-full h-12 font-display text-lg gap-2" onClick={submitOrder} disabled={submitting}>
-              <MessageCircle className="h-5 w-5" />
-              Enviar pedido pelo WhatsApp
+              {paymentMethod === "pix" ? <><QrCode className="h-5 w-5" /> Gerar PIX e enviar</> : <><MessageCircle className="h-5 w-5" /> Enviar pedido pelo WhatsApp</>}
             </Button>
-            <p className="text-[11px] text-muted-foreground text-center">Confirme o pagamento na conversa do WhatsApp.</p>
+            <p className="text-[11px] text-muted-foreground text-center">
+              {paymentMethod === "pix"
+                ? "Pague o PIX para o pedido seguir automaticamente para o WhatsApp."
+                : "Confirme detalhes do pagamento na conversa do WhatsApp."}
+            </p>
           </div>
         </SheetContent>
       </Sheet>
 
       {/* Confirmação */}
       {/* PIX QR Code */}
-      <Dialog open={pixOpen} onOpenChange={setPixOpen}>
+      <Dialog open={pixOpen} onOpenChange={(o) => { if (!o && !pixPaid) return; setPixOpen(o); }}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="font-display text-2xl">Pague com PIX</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">
+              {pixPaid ? "Pagamento confirmado ✅" : "Pague com PIX"}
+            </DialogTitle>
+          </DialogHeader>
           <div className="space-y-3">
-            <div className="rounded-lg bg-white p-3 flex items-center justify-center">
-              {pixQrDataUrl && <img src={pixQrDataUrl} alt="QR Code PIX" className="w-full max-w-[260px] h-auto" />}
-            </div>
+            {!pixPaid && pixQrDataUrl && (
+              <div className="rounded-lg bg-white p-3 flex items-center justify-center">
+                <img src={pixQrDataUrl} alt="QR Code PIX" className="w-full max-w-[260px] h-auto" />
+              </div>
+            )}
             <div className="rounded-md bg-muted/60 p-2 text-center">
               <p className="text-xs text-muted-foreground">Valor</p>
               <p className="font-display text-2xl text-primary">{formatBRL(total)}</p>
-              {settings?.pix_receiver_name && (
-                <p className="text-[11px] text-muted-foreground mt-1">Recebedor: {settings.pix_receiver_name}</p>
-              )}
+              {pendingOrder && <p className="text-[11px] text-muted-foreground mt-1">Pedido #{pendingOrder.order_number}</p>}
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">PIX Copia e Cola</p>
-              <div className="rounded-md border border-border bg-muted/40 p-2 text-[11px] font-mono break-all max-h-24 overflow-y-auto">
-                {pixPayload}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" onClick={copyPix} className="gap-2">
-                {pixCopied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
-                {pixCopied ? "Copiado" : "Copiar código"}
-              </Button>
-              <Button variant="outline" onClick={downloadPixQr} className="gap-2">
-                <Download className="h-4 w-4" /> Baixar QR
-              </Button>
-            </div>
-            <p className="text-[11px] text-muted-foreground text-center">
-              Após pagar, feche esta janela e envie o pedido pelo WhatsApp anexando o comprovante.
-            </p>
-            <Button className="w-full" onClick={() => setPixOpen(false)}>Já paguei, continuar</Button>
+
+            {!pixPaid && (
+              <>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">PIX Copia e Cola</p>
+                  <div className="rounded-md border border-border bg-muted/40 p-2 text-[11px] font-mono break-all max-h-24 overflow-y-auto">
+                    {pixPayload}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" onClick={copyPix} className="gap-2">
+                    {pixCopied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                    {pixCopied ? "Copiado" : "Copiar código"}
+                  </Button>
+                  <Button variant="outline" onClick={downloadPixQr} className="gap-2">
+                    <Download className="h-4 w-4" /> Baixar QR
+                  </Button>
+                </div>
+                <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-center">
+                  <p className="text-xs">
+                    {pixChecking ? "🔄 Verificando pagamento..." : "⏳ Aguardando pagamento (verifica a cada 5s)"}
+                  </p>
+                </div>
+              </>
+            )}
+
+            {pixPaid && pendingOrder && (
+              <>
+                <div className="rounded-md bg-success/10 border border-success/30 p-3 text-center">
+                  <p className="text-sm">Recebemos seu pagamento! Clique para enviar o pedido para a loja pelo WhatsApp.</p>
+                </div>
+                <Button
+                  className="w-full h-12 font-display text-lg gap-2"
+                  onClick={() => { sendWhatsapp(pendingOrder.order_number, true); finishAndReset(pendingOrder.order_number); }}
+                >
+                  <MessageCircle className="h-5 w-5" /> Enviar para o WhatsApp
+                </Button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>

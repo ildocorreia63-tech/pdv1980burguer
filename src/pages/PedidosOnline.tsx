@@ -25,16 +25,22 @@ type Order = {
   subtotal: number;
   total: number;
   notes: string | null;
-  status: "pending" | "accepted" | "rejected" | "completed";
+  status: "pending" | "accepted" | "rejected" | "completed" | "pending_payment";
   sale_id: string | null;
   created_at: string;
   payment_method: string | null;
   payment_change_for: number | null;
+  payment_confirmed_at: string | null;
+  asaas_invoice_url: string | null;
   items?: OrderItem[];
 };
 
-const paymentInfo = (m: string | null) => {
-  if (m === "pix") return { label: "PAGO VIA PIX", icon: "💸", cls: "bg-success text-success-foreground" };
+const paymentInfo = (m: string | null, paid: boolean) => {
+  if (m === "pix") {
+    return paid
+      ? { label: "PIX PAGO ✅", icon: "💸", cls: "bg-success text-success-foreground" }
+      : { label: "PIX AGUARDANDO", icon: "⏳", cls: "bg-amber-500 text-white" };
+  }
   if (m === "cash") return { label: "DINHEIRO NA ENTREGA", icon: "💵", cls: "bg-accent text-accent-foreground" };
   if (m === "card_delivery") return { label: "CARTÃO NA ENTREGA", icon: "💳", cls: "bg-accent text-accent-foreground" };
   return { label: "A COMBINAR", icon: "❓", cls: "bg-muted text-muted-foreground" };
@@ -216,7 +222,7 @@ export default function PedidosOnline() {
 
             {/* Payment highlight */}
             {(() => {
-              const pi = paymentInfo(o.payment_method);
+              const pi = paymentInfo(o.payment_method, !!o.payment_confirmed_at);
               return (
                 <div className={`mt-2 rounded-md px-3 py-2 ${pi.cls} flex items-center justify-between gap-2`}>
                   <span className="font-display text-sm tracking-wide flex items-center gap-2">
