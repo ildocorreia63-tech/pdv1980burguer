@@ -171,17 +171,37 @@ export default function PedidosOnline() {
     window.open(`https://wa.me/55${phone}`, "_blank");
   };
 
-  const visible = orders.filter((o) => filter === "all" ? true : o.status === "pending");
+  const counts = {
+    pending_payment: orders.filter((o) => o.status === "pending_payment").length,
+    pending: orders.filter((o) => o.status === "pending").length,
+    accepted: orders.filter((o) => o.status === "accepted").length,
+    completed: orders.filter((o) => o.status === "completed").length,
+    all: orders.length,
+  };
+  const visible = orders.filter((o) => filter === "all" ? true : o.status === filter);
+
+  const filterBtns: { key: Filter; label: string }[] = [
+    { key: "pending_payment", label: "Aguard. PIX" },
+    { key: "pending", label: "Pendentes" },
+    { key: "accepted", label: "Aceitos" },
+    { key: "completed", label: "Concluídos" },
+    { key: "all", label: "Todos" },
+  ];
 
   return (
     <AppShell title="Pedidos Online">
-      <div className="flex gap-2 mb-3">
-        <Button size="sm" variant={filter === "pending" ? "default" : "outline"} onClick={() => setFilter("pending")}>
-          Pendentes ({orders.filter((o) => o.status === "pending").length})
-        </Button>
-        <Button size="sm" variant={filter === "all" ? "default" : "outline"} onClick={() => setFilter("all")}>
-          Todos
-        </Button>
+      <div className="flex gap-2 mb-3 overflow-x-auto pb-1 -mx-1 px-1">
+        {filterBtns.map((f) => (
+          <Button
+            key={f.key}
+            size="sm"
+            variant={filter === f.key ? "default" : "outline"}
+            onClick={() => setFilter(f.key)}
+            className="shrink-0"
+          >
+            {f.label} ({counts[f.key]})
+          </Button>
+        ))}
       </div>
 
       {loading && <p className="text-center text-sm text-muted-foreground py-8">Carregando...</p>}
