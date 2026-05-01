@@ -49,7 +49,8 @@ const paymentInfo = (m: string | null, paid: boolean) => {
 export default function PedidosOnline() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [filter, setFilter] = useState<"pending" | "all">("pending");
+  type Filter = "pending_payment" | "pending" | "accepted" | "completed" | "all";
+  const [filter, setFilter] = useState<Filter>("pending");
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
