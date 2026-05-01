@@ -494,49 +494,76 @@ export default function Cardapio() {
             </div>
 
             <Button className="w-full h-12 font-display text-lg gap-2" onClick={submitOrder} disabled={submitting}>
-              <MessageCircle className="h-5 w-5" />
-              Enviar pedido pelo WhatsApp
+              {paymentMethod === "pix" ? <><QrCode className="h-5 w-5" /> Gerar PIX e enviar</> : <><MessageCircle className="h-5 w-5" /> Enviar pedido pelo WhatsApp</>}
             </Button>
-            <p className="text-[11px] text-muted-foreground text-center">Confirme o pagamento na conversa do WhatsApp.</p>
+            <p className="text-[11px] text-muted-foreground text-center">
+              {paymentMethod === "pix"
+                ? "Pague o PIX para o pedido seguir automaticamente para o WhatsApp."
+                : "Confirme detalhes do pagamento na conversa do WhatsApp."}
+            </p>
           </div>
         </SheetContent>
       </Sheet>
 
       {/* Confirmação */}
       {/* PIX QR Code */}
-      <Dialog open={pixOpen} onOpenChange={setPixOpen}>
+      <Dialog open={pixOpen} onOpenChange={(o) => { if (!o && !pixPaid) return; setPixOpen(o); }}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="font-display text-2xl">Pague com PIX</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">
+              {pixPaid ? "Pagamento confirmado ✅" : "Pague com PIX"}
+            </DialogTitle>
+          </DialogHeader>
           <div className="space-y-3">
-            <div className="rounded-lg bg-white p-3 flex items-center justify-center">
-              {pixQrDataUrl && <img src={pixQrDataUrl} alt="QR Code PIX" className="w-full max-w-[260px] h-auto" />}
-            </div>
+            {!pixPaid && pixQrDataUrl && (
+              <div className="rounded-lg bg-white p-3 flex items-center justify-center">
+                <img src={pixQrDataUrl} alt="QR Code PIX" className="w-full max-w-[260px] h-auto" />
+              </div>
+            )}
             <div className="rounded-md bg-muted/60 p-2 text-center">
               <p className="text-xs text-muted-foreground">Valor</p>
               <p className="font-display text-2xl text-primary">{formatBRL(total)}</p>
-              {settings?.pix_receiver_name && (
-                <p className="text-[11px] text-muted-foreground mt-1">Recebedor: {settings.pix_receiver_name}</p>
-              )}
+              {pendingOrder && <p className="text-[11px] text-muted-foreground mt-1">Pedido #{pendingOrder.order_number}</p>}
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">PIX Copia e Cola</p>
-              <div className="rounded-md border border-border bg-muted/40 p-2 text-[11px] font-mono break-all max-h-24 overflow-y-auto">
-                {pixPayload}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" onClick={copyPix} className="gap-2">
-                {pixCopied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
-                {pixCopied ? "Copiado" : "Copiar código"}
-              </Button>
-              <Button variant="outline" onClick={downloadPixQr} className="gap-2">
-                <Download className="h-4 w-4" /> Baixar QR
-              </Button>
-            </div>
-            <p className="text-[11px] text-muted-foreground text-center">
-              Após pagar, feche esta janela e envie o pedido pelo WhatsApp anexando o comprovante.
-            </p>
-            <Button className="w-full" onClick={() => setPixOpen(false)}>Já paguei, continuar</Button>
+
+            {!pixPaid && (
+              <>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">PIX Copia e Cola</p>
+                  <div className="rounded-md border border-border bg-muted/40 p-2 text-[11px] font-mono break-all max-h-24 overflow-y-auto">
+                    {pixPayload}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" onClick={copyPix} className="gap-2">
+                    {pixCopied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                    {pixCopied ? "Copiado" : "Copiar código"}
+                  </Button>
+                  <Button variant="outline" onClick={downloadPixQr} className="gap-2">
+                    <Download className="h-4 w-4" /> Baixar QR
+                  </Button>
+                </div>
+                <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-center">
+                  <p className="text-xs">
+                    {pixChecking ? "🔄 Verificando pagamento..." : "⏳ Aguardando pagamento (verifica a cada 5s)"}
+                  </p>
+                </div>
+              </>
+            )}
+
+            {pixPaid && pendingOrder && (
+              <>
+                <div className="rounded-md bg-success/10 border border-success/30 p-3 text-center">
+                  <p className="text-sm">Recebemos seu pagamento! Clique para enviar o pedido para a loja pelo WhatsApp.</p>
+                </div>
+                <Button
+                  className="w-full h-12 font-display text-lg gap-2"
+                  onClick={() => { sendWhatsapp(pendingOrder.order_number, true); finishAndReset(pendingOrder.order_number); }}
+                >
+                  <MessageCircle className="h-5 w-5" /> Enviar para o WhatsApp
+                </Button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
