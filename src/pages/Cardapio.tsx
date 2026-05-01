@@ -53,6 +53,9 @@ export default function Cardapio() {
   const [pixPayload, setPixPayload] = useState("");
   const [pixQrDataUrl, setPixQrDataUrl] = useState("");
   const [pixCopied, setPixCopied] = useState(false);
+  const [pixPaid, setPixPaid] = useState(false);
+  const [pixChecking, setPixChecking] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<{ id: string; order_number: number } | null>(null);
 
   const [, setTick] = useState(0);
   useEffect(() => {
