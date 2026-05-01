@@ -222,7 +222,7 @@ export default function PedidosOnline() {
 
             {/* Payment highlight */}
             {(() => {
-              const pi = paymentInfo(o.payment_method);
+              const pi = paymentInfo(o.payment_method, !!o.payment_confirmed_at);
               return (
                 <div className={`mt-2 rounded-md px-3 py-2 ${pi.cls} flex items-center justify-between gap-2`}>
                   <span className="font-display text-sm tracking-wide flex items-center gap-2">
