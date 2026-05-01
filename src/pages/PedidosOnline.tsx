@@ -293,7 +293,7 @@ export default function PedidosOnline() {
         ))}
         {!loading && visible.length === 0 && (
           <p className="text-center text-sm text-muted-foreground py-8">
-            {filter === "pending" ? "Nenhum pedido pendente." : "Nenhum pedido ainda."}
+            Nenhum pedido neste filtro.
           </p>
         )}
       </div>
@@ -303,6 +303,7 @@ export default function PedidosOnline() {
 
 const StatusBadge = ({ status }: { status: Order["status"] }) => {
   const map = {
+    pending_payment: { label: "Aguard. PIX", cls: "bg-amber-500 text-white" },
     pending: { label: "Pendente", cls: "bg-accent text-accent-foreground" },
     accepted: { label: "Aceito", cls: "bg-success text-success-foreground" },
     rejected: { label: "Recusado", cls: "bg-destructive text-destructive-foreground" },
