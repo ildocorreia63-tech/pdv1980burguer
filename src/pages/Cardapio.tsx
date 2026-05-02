@@ -16,6 +16,10 @@ import { toast } from "sonner";
 import QRCode from "qrcode";
 import { buildPixPayload } from "@/lib/pix";
 import { BusinessHours, isOpenNow, nextOpeningLabel } from "@/lib/businessHours";
+import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentState";
+
+const CART_KEY = "cardapio:cart:v1";
+const CHECKOUT_KEY = "cardapio:checkout:v1";
 
 type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null };
 type Category = { id: string; name: string };
