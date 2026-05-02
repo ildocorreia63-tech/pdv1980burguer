@@ -471,6 +471,9 @@ export default function Admin() {
                   );
                 })}
               </div>
+              <Button size="sm" className="w-full mt-2" onClick={saveSettings}>
+                Salvar horários
+              </Button>
             </div>
 
             <div className="rounded-lg border border-border p-3 space-y-2">
