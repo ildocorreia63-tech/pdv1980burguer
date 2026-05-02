@@ -13,6 +13,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CheckoutSheet } from "@/components/pdv/CheckoutSheet";
 import { ReceiptDialog } from "@/components/pdv/ReceiptDialog";
 import type { ReceiptData } from "@/lib/receipt";
+import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentState";
+
+const PDV_CART_KEY = "pdv:cart:v1";
 
 type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null };
 type Category = { id: string; name: string };
@@ -24,7 +27,7 @@ export default function PDV() {
   const [cats, setCats] = useState<Category[]>([]);
   const [activeCat, setActiveCat] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = usePersistentState<CartItem[]>(PDV_CART_KEY, []);
   const [openCheckout, setOpenCheckout] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [openReceipt, setOpenReceipt] = useState(false);
@@ -71,6 +74,7 @@ export default function PDV() {
 
   const handleConfirmed = (r: ReceiptData) => {
     setCart([]);
+    clearPersistentState(PDV_CART_KEY);
     setOpenCheckout(false);
     setReceipt(r);
     setOpenReceipt(true);

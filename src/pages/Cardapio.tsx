@@ -16,6 +16,10 @@ import { toast } from "sonner";
 import QRCode from "qrcode";
 import { buildPixPayload } from "@/lib/pix";
 import { BusinessHours, isOpenNow, nextOpeningLabel } from "@/lib/businessHours";
+import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentState";
+
+const CART_KEY = "cardapio:cart:v1";
+const CHECKOUT_KEY = "cardapio:checkout:v1";
 
 type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null };
 type Category = { id: string; name: string };
@@ -30,22 +34,38 @@ export default function Cardapio() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [activeCat, setActiveCat] = useState("all");
   const [search, setSearch] = useState("");
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = usePersistentState<CartItem[]>(CART_KEY, []);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
-  // checkout fields
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [orderType, setOrderType] = useState<"delivery" | "pickup">("delivery");
-  const [zoneId, setZoneId] = useState<string>("");
-  const [street, setStreet] = useState("");
-  const [number, setNumber] = useState("");
-  const [complement, setComplement] = useState("");
-  const [reference, setReference] = useState("");
-  const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "pix" | "card_delivery">("pix");
-  const [changeFor, setChangeFor] = useState("");
+  // checkout fields (persisted as a single object)
+  type CheckoutData = {
+    name: string; phone: string;
+    orderType: "delivery" | "pickup";
+    zoneId: string;
+    street: string; number: string; complement: string; reference: string;
+    notes: string;
+    paymentMethod: "cash" | "pix" | "card_delivery";
+    changeFor: string;
+  };
+  const defaultCheckout: CheckoutData = {
+    name: "", phone: "", orderType: "delivery", zoneId: "",
+    street: "", number: "", complement: "", reference: "",
+    notes: "", paymentMethod: "pix", changeFor: "",
+  };
+  const [checkout, setCheckout] = usePersistentState<CheckoutData>(CHECKOUT_KEY, defaultCheckout);
+  const { name, phone, orderType, zoneId, street, number, complement, reference, notes, paymentMethod, changeFor } = checkout;
+  const setName = (v: string) => setCheckout((c) => ({ ...c, name: v }));
+  const setPhone = (v: string) => setCheckout((c) => ({ ...c, phone: v }));
+  const setOrderType = (v: "delivery" | "pickup") => setCheckout((c) => ({ ...c, orderType: v }));
+  const setZoneId = (v: string) => setCheckout((c) => ({ ...c, zoneId: v }));
+  const setStreet = (v: string) => setCheckout((c) => ({ ...c, street: v }));
+  const setNumber = (v: string) => setCheckout((c) => ({ ...c, number: v }));
+  const setComplement = (v: string) => setCheckout((c) => ({ ...c, complement: v }));
+  const setReference = (v: string) => setCheckout((c) => ({ ...c, reference: v }));
+  const setNotes = (v: string) => setCheckout((c) => ({ ...c, notes: v }));
+  const setPaymentMethod = (v: "cash" | "pix" | "card_delivery") => setCheckout((c) => ({ ...c, paymentMethod: v }));
+  const setChangeFor = (v: string) => setCheckout((c) => ({ ...c, changeFor: v }));
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [lastOrderNum, setLastOrderNum] = useState<number | null>(null);
@@ -194,7 +214,9 @@ export default function Cardapio() {
     setCheckoutOpen(false);
     setCartOpen(false);
     setCart([]);
-    setName(""); setPhone(""); setStreet(""); setNumber(""); setComplement(""); setReference(""); setNotes(""); setZoneId(""); setChangeFor(""); setPaymentMethod("pix");
+    setCheckout(defaultCheckout);
+    clearPersistentState(CART_KEY);
+    clearPersistentState(CHECKOUT_KEY);
     setPendingOrder(null); setPixPaid(false); setPixPayload(""); setPixQrDataUrl("");
   };
 
