@@ -427,9 +427,9 @@ export default function Admin() {
 
       {/* Configurações da loja */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Configurações do cardápio online</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+        <DialogContent className="max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="p-4 pb-2"><DialogTitle>Configurações do cardápio online</DialogTitle></DialogHeader>
+          <div className="space-y-3 overflow-y-auto px-4 pb-4 flex-1">
             <div><Label>Nome da loja</Label><Input value={storeName} onChange={(e) => setStoreName(e.target.value)} /></div>
             <div>
               <Label>WhatsApp da loja</Label>
@@ -471,6 +471,9 @@ export default function Admin() {
                   );
                 })}
               </div>
+              <Button size="sm" className="w-full mt-2" onClick={saveSettings}>
+                Salvar horários
+              </Button>
             </div>
 
             <div className="rounded-lg border border-border p-3 space-y-2">
@@ -494,7 +497,9 @@ export default function Admin() {
             <div className="rounded-md bg-muted/50 p-2 text-xs">
               Link do cardápio: <code className="text-primary">{window.location.origin}/cardapio</code>
             </div>
-            <Button className="w-full" onClick={saveSettings}>Salvar</Button>
+          </div>
+          <div className="border-t border-border p-3 bg-background">
+            <Button className="w-full" onClick={saveSettings}>Salvar todas as configurações</Button>
           </div>
         </DialogContent>
       </Dialog>
