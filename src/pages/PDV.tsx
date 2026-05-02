@@ -13,6 +13,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CheckoutSheet } from "@/components/pdv/CheckoutSheet";
 import { ReceiptDialog } from "@/components/pdv/ReceiptDialog";
 import type { ReceiptData } from "@/lib/receipt";
+import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentState";
+
+const PDV_CART_KEY = "pdv:cart:v1";
 
 type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null };
 type Category = { id: string; name: string };
