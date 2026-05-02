@@ -27,7 +27,7 @@ export default function PDV() {
   const [cats, setCats] = useState<Category[]>([]);
   const [activeCat, setActiveCat] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = usePersistentState<CartItem[]>(PDV_CART_KEY, []);
   const [openCheckout, setOpenCheckout] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [openReceipt, setOpenReceipt] = useState(false);
