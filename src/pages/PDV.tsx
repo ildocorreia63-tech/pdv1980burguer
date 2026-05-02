@@ -74,6 +74,7 @@ export default function PDV() {
 
   const handleConfirmed = (r: ReceiptData) => {
     setCart([]);
+    clearPersistentState(PDV_CART_KEY);
     setOpenCheckout(false);
     setReceipt(r);
     setOpenReceipt(true);
