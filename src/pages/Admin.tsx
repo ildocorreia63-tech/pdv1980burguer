@@ -497,7 +497,9 @@ export default function Admin() {
             <div className="rounded-md bg-muted/50 p-2 text-xs">
               Link do cardápio: <code className="text-primary">{window.location.origin}/cardapio</code>
             </div>
-            <Button className="w-full" onClick={saveSettings}>Salvar</Button>
+          </div>
+          <div className="border-t border-border p-3 bg-background">
+            <Button className="w-full" onClick={saveSettings}>Salvar todas as configurações</Button>
           </div>
         </DialogContent>
       </Dialog>
