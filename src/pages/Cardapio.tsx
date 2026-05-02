@@ -401,6 +401,21 @@ export default function Cardapio() {
           <Button className="w-full mt-3 h-12 font-display text-lg" onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}>
             Continuar
           </Button>
+          <Button
+            variant="outline"
+            className="w-full mt-2 text-destructive"
+            onClick={() => {
+              if (!confirm("Limpar carrinho e dados do pedido?")) return;
+              setCart([]);
+              setCheckout(defaultCheckout);
+              clearPersistentState(CART_KEY);
+              clearPersistentState(CHECKOUT_KEY);
+              setCartOpen(false);
+              toast.success("Dados do pedido apagados");
+            }}
+          >
+            <Trash2 className="h-4 w-4 mr-1" /> Limpar dados do pedido
+          </Button>
         </SheetContent>
       </Sheet>
 
