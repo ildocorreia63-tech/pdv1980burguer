@@ -168,6 +168,18 @@ export default function PDV() {
           <Button className="w-full mt-3 h-12 font-display text-lg" onClick={() => setOpenCheckout(true)} disabled={!user}>
             Receber Pagamento
           </Button>
+          <Button
+            variant="outline"
+            className="w-full mt-2 text-destructive"
+            onClick={() => {
+              if (!confirm("Limpar carrinho atual?")) return;
+              setCart([]);
+              clearPersistentState(PDV_CART_KEY);
+              toast.success("Carrinho apagado");
+            }}
+          >
+            <Trash2 className="h-4 w-4 mr-1" /> Limpar dados do pedido
+          </Button>
         </SheetContent>
       </Sheet>
 
