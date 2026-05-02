@@ -214,7 +214,9 @@ export default function Cardapio() {
     setCheckoutOpen(false);
     setCartOpen(false);
     setCart([]);
-    setName(""); setPhone(""); setStreet(""); setNumber(""); setComplement(""); setReference(""); setNotes(""); setZoneId(""); setChangeFor(""); setPaymentMethod("pix");
+    setCheckout(defaultCheckout);
+    clearPersistentState(CART_KEY);
+    clearPersistentState(CHECKOUT_KEY);
     setPendingOrder(null); setPixPaid(false); setPixPayload(""); setPixQrDataUrl("");
   };
 
