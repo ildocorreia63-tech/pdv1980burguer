@@ -38,7 +38,7 @@ const periodLabel: Record<Period, string> = {
 
 export default function Home() {
   const nav = useNavigate();
-  const [period, setPeriod] = useState<Period>("today");
+  const [period, setPeriod] = useState<Period>("7d");
   const [loading, setLoading] = useState(true);
 
   const [stats, setStats] = useState({
