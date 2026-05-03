@@ -372,7 +372,7 @@ export default function Home() {
       </Card>
 
       {/* Gráfico vendas vs despesas */}
-      {period !== "today" && (
+      {daysCount > 1 && (
         <Card className="mt-4 p-4 shadow-card-retro">
           <h3 className="font-display text-base mb-3">Vendas x Despesas</h3>
           <div className="h-48 -ml-2">
