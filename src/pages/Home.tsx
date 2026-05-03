@@ -255,21 +255,59 @@ export default function Home() {
       </div>
 
       {/* Period selector */}
-      <div className="mb-4 inline-flex rounded-lg border border-border bg-card p-1 shadow-sm">
-        {(["today", "7d", "30d"] as Period[]).map((p) => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
-              period === p
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {periodLabel[p]}
-          </button>
-        ))}
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-lg border border-border bg-card p-1 shadow-sm">
+          {(["today", "7d", "30d"] as Period[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                period === p
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {periodLabel[p]}
+            </button>
+          ))}
+        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={period === "custom" ? "default" : "outline"}
+              size="sm"
+              className="h-9 text-xs"
+            >
+              <CalendarIcon className="h-3.5 w-3.5" />
+              {period === "custom" && range?.from
+                ? range.to && range.to.getTime() !== range.from.getTime()
+                  ? `${format(range.from, "dd/MM", { locale: ptBR })} – ${format(range.to, "dd/MM", { locale: ptBR })}`
+                  : format(range.from, "dd/MM/yyyy", { locale: ptBR })
+                : "Datas"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              selected={range}
+              onSelect={(r) => {
+                setRange(r);
+                if (r?.from) setPeriod("custom");
+              }}
+              numberOfMonths={1}
+              locale={ptBR}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
+      <p className="mb-3 text-[11px] text-muted-foreground">
+        {format(startDate, "dd/MM/yyyy", { locale: ptBR })} – {format(endDate, "dd/MM/yyyy", { locale: ptBR })} ·{" "}
+        <span className={profit >= 0 ? "text-success font-semibold" : "text-destructive font-semibold"}>
+          Saldo {formatBRL(profit)}
+        </span>
+      </p>
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3">
