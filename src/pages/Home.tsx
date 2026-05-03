@@ -75,17 +75,36 @@ export default function Home() {
     completed: 0,
   });
 
+  const { startDate, endDate, daysCount } = useMemo(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    if (period === "7d") start.setDate(start.getDate() - 6);
+    else if (period === "30d") start.setDate(start.getDate() - 29);
+    else if (period === "custom" && range?.from) {
+      start.setTime(range.from.getTime());
+      start.setHours(0, 0, 0, 0);
+      const t = range.to ?? range.from;
+      end.setTime(t.getTime());
+      end.setHours(23, 59, 59, 999);
+    }
+    const days = Math.max(
+      1,
+      Math.round((end.getTime() - start.getTime()) / 86400000) + 1,
+    );
+    return { startDate: start, endDate: end, daysCount: days };
+  }, [period, range]);
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
 
-      const now = new Date();
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-      if (period === "7d") start.setDate(start.getDate() - 6);
-      if (period === "30d") start.setDate(start.getDate() - 29);
-      const startIso = start.toISOString();
-      const startDate = start.toISOString().slice(0, 10);
+      const startIso = startDate.toISOString();
+      const endIso = endDate.toISOString();
+      const startDateStr = startDate.toISOString().slice(0, 10);
+      const endDateStr = endDate.toISOString().slice(0, 10);
+
 
       const [
         { data: sales },
