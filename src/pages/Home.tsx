@@ -119,15 +119,18 @@ export default function Home() {
           .from("sales")
           .select("id, total, paid_amount, status, created_at")
           .gte("created_at", startIso)
+          .lte("created_at", endIso)
           .neq("status", "cancelled"),
         supabase
           .from("sale_items")
           .select("product_name, quantity, subtotal, sale_id, created_at")
-          .gte("created_at", startIso),
+          .gte("created_at", startIso)
+          .lte("created_at", endIso),
         supabase
           .from("expenses")
           .select("amount, expense_date")
-          .gte("expense_date", startDate),
+          .gte("expense_date", startDateStr)
+          .lte("expense_date", endDateStr),
         supabase.from("customers").select("credit_balance").gt("credit_balance", 0),
         supabase
           .from("payments")
@@ -135,14 +138,20 @@ export default function Home() {
           .is("sale_id", null)
           .not("customer_id", "is", null)
           .eq("status", "paid")
-          .gte("paid_at", startIso),
+          .gte("paid_at", startIso)
+          .lte("paid_at", endIso),
         supabase
           .from("payments")
           .select("amount, method, status")
           .eq("status", "paid")
           .not("sale_id", "is", null)
-          .gte("paid_at", startIso),
-        supabase.from("online_orders").select("status").gte("created_at", startIso),
+          .gte("paid_at", startIso)
+          .lte("paid_at", endIso),
+        supabase
+          .from("online_orders")
+          .select("status")
+          .gte("created_at", startIso)
+          .lte("created_at", endIso),
       ]);
 
       // KPIs
