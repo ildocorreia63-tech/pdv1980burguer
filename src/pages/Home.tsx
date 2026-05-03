@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, paymentLabels } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import {
   TrendingUp,
   TrendingDown,
@@ -16,6 +20,7 @@ import {
   CheckCircle2,
   CreditCard,
   Hourglass,
+  CalendarIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -27,19 +32,30 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
 
-type Period = "today" | "7d" | "30d";
+type Period = "today" | "7d" | "30d" | "custom";
 
 const periodLabel: Record<Period, string> = {
   today: "Hoje",
   "7d": "7 dias",
   "30d": "30 dias",
+  custom: "Personalizado",
 };
 
 export default function Home() {
   const nav = useNavigate();
   const [period, setPeriod] = useState<Period>("7d");
+  const [range, setRange] = useState<DateRange | undefined>(() => {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 6);
+    return { from, to };
+  });
   const [loading, setLoading] = useState(true);
+
 
   const [stats, setStats] = useState({
     sales: 0,
@@ -59,17 +75,36 @@ export default function Home() {
     completed: 0,
   });
 
+  const { startDate, endDate, daysCount } = useMemo(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    if (period === "7d") start.setDate(start.getDate() - 6);
+    else if (period === "30d") start.setDate(start.getDate() - 29);
+    else if (period === "custom" && range?.from) {
+      start.setTime(range.from.getTime());
+      start.setHours(0, 0, 0, 0);
+      const t = range.to ?? range.from;
+      end.setTime(t.getTime());
+      end.setHours(23, 59, 59, 999);
+    }
+    const days = Math.max(
+      1,
+      Math.round((end.getTime() - start.getTime()) / 86400000) + 1,
+    );
+    return { startDate: start, endDate: end, daysCount: days };
+  }, [period, range]);
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
 
-      const now = new Date();
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-      if (period === "7d") start.setDate(start.getDate() - 6);
-      if (period === "30d") start.setDate(start.getDate() - 29);
-      const startIso = start.toISOString();
-      const startDate = start.toISOString().slice(0, 10);
+      const startIso = startDate.toISOString();
+      const endIso = endDate.toISOString();
+      const startDateStr = startDate.toISOString().slice(0, 10);
+      const endDateStr = endDate.toISOString().slice(0, 10);
+
 
       const [
         { data: sales },
@@ -84,15 +119,18 @@ export default function Home() {
           .from("sales")
           .select("id, total, paid_amount, status, created_at")
           .gte("created_at", startIso)
+          .lte("created_at", endIso)
           .neq("status", "cancelled"),
         supabase
           .from("sale_items")
           .select("product_name, quantity, subtotal, sale_id, created_at")
-          .gte("created_at", startIso),
+          .gte("created_at", startIso)
+          .lte("created_at", endIso),
         supabase
           .from("expenses")
           .select("amount, expense_date")
-          .gte("expense_date", startDate),
+          .gte("expense_date", startDateStr)
+          .lte("expense_date", endDateStr),
         supabase.from("customers").select("credit_balance").gt("credit_balance", 0),
         supabase
           .from("payments")
@@ -100,14 +138,20 @@ export default function Home() {
           .is("sale_id", null)
           .not("customer_id", "is", null)
           .eq("status", "paid")
-          .gte("paid_at", startIso),
+          .gte("paid_at", startIso)
+          .lte("paid_at", endIso),
         supabase
           .from("payments")
           .select("amount, method, status")
           .eq("status", "paid")
           .not("sale_id", "is", null)
-          .gte("paid_at", startIso),
-        supabase.from("online_orders").select("status").gte("created_at", startIso),
+          .gte("paid_at", startIso)
+          .lte("paid_at", endIso),
+        supabase
+          .from("online_orders")
+          .select("status")
+          .gte("created_at", startIso)
+          .lte("created_at", endIso),
       ]);
 
       // KPIs
@@ -127,12 +171,11 @@ export default function Home() {
       });
 
       // Chart data
-      const days = period === "today" ? 1 : period === "7d" ? 7 : 30;
+      const days = daysCount;
       const buckets: { label: string; key: string; vendas: number; despesas: number }[] = [];
-      for (let i = days - 1; i >= 0; i--) {
-        const d = new Date();
-        d.setHours(0, 0, 0, 0);
-        d.setDate(d.getDate() - i);
+      for (let i = 0; i < days; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
         buckets.push({
           label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
           key: d.toISOString().slice(0, 10),
@@ -197,7 +240,7 @@ export default function Home() {
       setLoading(false);
     };
     load();
-  }, [period]);
+  }, [startDate, endDate, daysCount]);
 
   const profit = stats.sales - stats.expenses;
   const maxMethod = Math.max(...byMethod.map((m) => m.total), 1);
@@ -212,21 +255,59 @@ export default function Home() {
       </div>
 
       {/* Period selector */}
-      <div className="mb-4 inline-flex rounded-lg border border-border bg-card p-1 shadow-sm">
-        {(["today", "7d", "30d"] as Period[]).map((p) => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
-              period === p
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {periodLabel[p]}
-          </button>
-        ))}
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-lg border border-border bg-card p-1 shadow-sm">
+          {(["today", "7d", "30d"] as Period[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                period === p
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {periodLabel[p]}
+            </button>
+          ))}
+        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={period === "custom" ? "default" : "outline"}
+              size="sm"
+              className="h-9 text-xs"
+            >
+              <CalendarIcon className="h-3.5 w-3.5" />
+              {period === "custom" && range?.from
+                ? range.to && range.to.getTime() !== range.from.getTime()
+                  ? `${format(range.from, "dd/MM", { locale: ptBR })} – ${format(range.to, "dd/MM", { locale: ptBR })}`
+                  : format(range.from, "dd/MM/yyyy", { locale: ptBR })
+                : "Datas"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              selected={range}
+              onSelect={(r) => {
+                setRange(r);
+                if (r?.from) setPeriod("custom");
+              }}
+              numberOfMonths={1}
+              locale={ptBR}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
+      <p className="mb-3 text-[11px] text-muted-foreground">
+        {format(startDate, "dd/MM/yyyy", { locale: ptBR })} – {format(endDate, "dd/MM/yyyy", { locale: ptBR })} ·{" "}
+        <span className={profit >= 0 ? "text-success font-semibold" : "text-destructive font-semibold"}>
+          Saldo {formatBRL(profit)}
+        </span>
+      </p>
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3">
@@ -291,14 +372,14 @@ export default function Home() {
       </Card>
 
       {/* Gráfico vendas vs despesas */}
-      {period !== "today" && (
+      {daysCount > 1 && (
         <Card className="mt-4 p-4 shadow-card-retro">
           <h3 className="font-display text-base mb-3">Vendas x Despesas</h3>
           <div className="h-48 -ml-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chart}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={period === "30d" ? 4 : 0} />
+                <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={daysCount > 14 ? Math.floor(daysCount / 7) : 0} />
                 <YAxis tick={{ fontSize: 10 }} width={40} />
                 <Tooltip
                   formatter={(v: number) => formatBRL(v)}
