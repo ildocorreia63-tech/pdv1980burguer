@@ -171,12 +171,11 @@ export default function Home() {
       });
 
       // Chart data
-      const days = period === "today" ? 1 : period === "7d" ? 7 : 30;
+      const days = daysCount;
       const buckets: { label: string; key: string; vendas: number; despesas: number }[] = [];
-      for (let i = days - 1; i >= 0; i--) {
-        const d = new Date();
-        d.setHours(0, 0, 0, 0);
-        d.setDate(d.getDate() - i);
+      for (let i = 0; i < days; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
         buckets.push({
           label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
           key: d.toISOString().slice(0, 10),
