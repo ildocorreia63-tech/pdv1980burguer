@@ -12,6 +12,7 @@ import Fiados from "./pages/Fiados";
 import Despesas from "./pages/Despesas";
 import Admin from "./pages/Admin";
 import PedidosOnline from "./pages/PedidosOnline";
+import Relatorios from "./pages/Relatorios";
 import Cardapio from "./pages/Cardapio";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/pedidos" element={<ProtectedRoute><PedidosOnline /></ProtectedRoute>} />
             <Route path="/fiado" element={<ProtectedRoute><Fiados /></ProtectedRoute>} />
             <Route path="/despesas" element={<ProtectedRoute><Despesas /></ProtectedRoute>} />
+            <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
