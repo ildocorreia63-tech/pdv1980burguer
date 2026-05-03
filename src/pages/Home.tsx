@@ -379,7 +379,7 @@ export default function Home() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chart}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={period === "30d" ? 4 : 0} />
+                <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={daysCount > 14 ? Math.floor(daysCount / 7) : 0} />
                 <YAxis tick={{ fontSize: 10 }} width={40} />
                 <Tooltip
                   formatter={(v: number) => formatBRL(v)}
