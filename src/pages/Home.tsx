@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, paymentLabels } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import {
   TrendingUp,
   TrendingDown,
@@ -16,6 +20,7 @@ import {
   CheckCircle2,
   CreditCard,
   Hourglass,
+  CalendarIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -27,19 +32,30 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
 
-type Period = "today" | "7d" | "30d";
+type Period = "today" | "7d" | "30d" | "custom";
 
 const periodLabel: Record<Period, string> = {
   today: "Hoje",
   "7d": "7 dias",
   "30d": "30 dias",
+  custom: "Personalizado",
 };
 
 export default function Home() {
   const nav = useNavigate();
   const [period, setPeriod] = useState<Period>("7d");
+  const [range, setRange] = useState<DateRange | undefined>(() => {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 6);
+    return { from, to };
+  });
   const [loading, setLoading] = useState(true);
+
 
   const [stats, setStats] = useState({
     sales: 0,
