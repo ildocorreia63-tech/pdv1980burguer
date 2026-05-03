@@ -240,7 +240,7 @@ export default function Home() {
       setLoading(false);
     };
     load();
-  }, [period]);
+  }, [startDate, endDate, daysCount]);
 
   const profit = stats.sales - stats.expenses;
   const maxMethod = Math.max(...byMethod.map((m) => m.total), 1);
