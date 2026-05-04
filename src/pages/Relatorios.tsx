@@ -124,6 +124,14 @@ export default function Relatorios() {
     lines.push("Método;Total");
     data.byMethod.forEach((m) => lines.push(`${paymentLabels[m.method] ?? m.method};${m.total.toFixed(2)}`));
     lines.push("");
+    lines.push("Despesas por categoria");
+    lines.push("Categoria;Subcategoria;Lançamentos;Total;% do período");
+    data.byCategory.forEach((c) => {
+      const [parent, ...rest] = c.category.split(/\s*[\/>]\s*/);
+      const sub = rest.join(" / ");
+      lines.push(`${parent};${sub};${c.count};${c.total.toFixed(2)};${c.pct.toFixed(1)}%`);
+    });
+    lines.push("");
     lines.push("Top produtos");
     lines.push("Produto;Quantidade;Total");
     data.topProducts.forEach((p) => lines.push(`${p.name};${p.qty};${p.total.toFixed(2)}`));
