@@ -180,6 +180,11 @@ export default function Relatorios() {
 <table><thead><tr><th>Método</th><th class="r">Total</th></tr></thead><tbody>
   ${data.byMethod.map((m) => `<tr><td>${paymentLabels[m.method] ?? m.method}</td><td class="r">${formatBRL(m.total)}</td></tr>`).join("") || `<tr><td colspan="2" style="color:#999">Sem pagamentos</td></tr>`}
 </tbody></table>
+<h2>Despesas por categoria</h2>
+<table><thead><tr><th>Categoria</th><th class="r">Lançamentos</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>
+  ${data.byCategory.map((c) => `<tr><td>${c.category}</td><td class="r">${c.count}</td><td class="r">${formatBRL(c.total)}</td><td class="r">${c.pct.toFixed(1)}%</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">Sem despesas</td></tr>`}
+  <tr><th>Total</th><th class="r"></th><th class="r">${formatBRL(data.expenses)}</th><th class="r">100%</th></tr>
+</tbody></table>
 <h2>Top produtos</h2>
 <table><thead><tr><th>#</th><th>Produto</th><th class="r">Qtd</th><th class="r">Total</th></tr></thead><tbody>
   ${data.topProducts.map((p, i) => `<tr><td>${i + 1}</td><td>${p.name}</td><td class="r">${p.qty}</td><td class="r">${formatBRL(p.total)}</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">Sem vendas</td></tr>`}
