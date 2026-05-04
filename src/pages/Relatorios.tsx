@@ -81,10 +81,21 @@ export default function Relatorios() {
       (methodPays ?? []).forEach((p) => mMap.set(p.method, (mMap.get(p.method) ?? 0) + Number(p.amount)));
       const byMethod = Array.from(mMap.entries()).map(([method, total]) => ({ method, total })).sort((a, b) => b.total - a.total);
 
+      const cMap = new Map<string, { total: number; count: number }>();
+      (exps ?? []).forEach((e) => {
+        const cat = (e.category && String(e.category).trim()) || "Sem categoria";
+        const c = cMap.get(cat) ?? { total: 0, count: 0 };
+        c.total += Number(e.amount); c.count += 1;
+        cMap.set(cat, c);
+      });
+      const byCategory = Array.from(cMap.entries())
+        .map(([category, v]) => ({ category, total: v.total, count: v.count, pct: expenses > 0 ? (v.total / expenses) * 100 : 0 }))
+        .sort((a, b) => b.total - a.total);
+
       setData({
         salesPaid, creditReceived, expenses, openCredit, salesCount,
         avgTicket: salesCount ? total / salesCount : 0,
-        byMethod, topProducts,
+        byMethod, topProducts, byCategory,
       });
       setLoading(false);
     };
