@@ -27,6 +27,7 @@ export default function Relatorios() {
     salesCount: 0, avgTicket: 0,
     byMethod: [] as { method: string; total: number }[],
     topProducts: [] as { name: string; qty: number; total: number }[],
+    byCategory: [] as { category: string; total: number; count: number; pct: number }[],
   });
 
   const { startDate, endDate } = useMemo(() => {
@@ -80,10 +81,21 @@ export default function Relatorios() {
       (methodPays ?? []).forEach((p) => mMap.set(p.method, (mMap.get(p.method) ?? 0) + Number(p.amount)));
       const byMethod = Array.from(mMap.entries()).map(([method, total]) => ({ method, total })).sort((a, b) => b.total - a.total);
 
+      const cMap = new Map<string, { total: number; count: number }>();
+      (exps ?? []).forEach((e) => {
+        const cat = (e.category && String(e.category).trim()) || "Sem categoria";
+        const c = cMap.get(cat) ?? { total: 0, count: 0 };
+        c.total += Number(e.amount); c.count += 1;
+        cMap.set(cat, c);
+      });
+      const byCategory = Array.from(cMap.entries())
+        .map(([category, v]) => ({ category, total: v.total, count: v.count, pct: expenses > 0 ? (v.total / expenses) * 100 : 0 }))
+        .sort((a, b) => b.total - a.total);
+
       setData({
         salesPaid, creditReceived, expenses, openCredit, salesCount,
         avgTicket: salesCount ? total / salesCount : 0,
-        byMethod, topProducts,
+        byMethod, topProducts, byCategory,
       });
       setLoading(false);
     };
@@ -111,6 +123,14 @@ export default function Relatorios() {
     lines.push("Formas de pagamento");
     lines.push("Método;Total");
     data.byMethod.forEach((m) => lines.push(`${paymentLabels[m.method] ?? m.method};${m.total.toFixed(2)}`));
+    lines.push("");
+    lines.push("Despesas por categoria");
+    lines.push("Categoria;Subcategoria;Lançamentos;Total;% do período");
+    data.byCategory.forEach((c) => {
+      const [parent, ...rest] = c.category.split(/\s*[\/>]\s*/);
+      const sub = rest.join(" / ");
+      lines.push(`${parent};${sub};${c.count};${c.total.toFixed(2)};${c.pct.toFixed(1)}%`);
+    });
     lines.push("");
     lines.push("Top produtos");
     lines.push("Produto;Quantidade;Total");
@@ -160,6 +180,11 @@ export default function Relatorios() {
 <table><thead><tr><th>Método</th><th class="r">Total</th></tr></thead><tbody>
   ${data.byMethod.map((m) => `<tr><td>${paymentLabels[m.method] ?? m.method}</td><td class="r">${formatBRL(m.total)}</td></tr>`).join("") || `<tr><td colspan="2" style="color:#999">Sem pagamentos</td></tr>`}
 </tbody></table>
+<h2>Despesas por categoria</h2>
+<table><thead><tr><th>Categoria</th><th class="r">Lançamentos</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>
+  ${data.byCategory.map((c) => `<tr><td>${c.category}</td><td class="r">${c.count}</td><td class="r">${formatBRL(c.total)}</td><td class="r">${c.pct.toFixed(1)}%</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">Sem despesas</td></tr>`}
+  <tr><th>Total</th><th class="r"></th><th class="r">${formatBRL(data.expenses)}</th><th class="r">100%</th></tr>
+</tbody></table>
 <h2>Top produtos</h2>
 <table><thead><tr><th>#</th><th>Produto</th><th class="r">Qtd</th><th class="r">Total</th></tr></thead><tbody>
   ${data.topProducts.map((p, i) => `<tr><td>${i + 1}</td><td>${p.name}</td><td class="r">${p.qty}</td><td class="r">${formatBRL(p.total)}</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">Sem vendas</td></tr>`}
@@ -189,6 +214,7 @@ export default function Relatorios() {
 </div>
 <h2>Recebimentos</h2><table><tr><td>Vendas</td><td class="r">${formatBRL(data.salesPaid)}</td></tr><tr><td>Fiado recebido</td><td class="r">${formatBRL(data.creditReceived)}</td></tr></table>
 <h2>Formas de pagamento</h2><table><thead><tr><th>Método</th><th class="r">Total</th></tr></thead><tbody>${data.byMethod.map((m) => `<tr><td>${paymentLabels[m.method] ?? m.method}</td><td class="r">${formatBRL(m.total)}</td></tr>`).join("") || `<tr><td colspan="2" style="color:#999">—</td></tr>`}</tbody></table>
+<h2>Despesas por categoria</h2><table><thead><tr><th>Categoria</th><th class="r">Lanç.</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>${data.byCategory.map((c) => `<tr><td>${c.category}</td><td class="r">${c.count}</td><td class="r">${formatBRL(c.total)}</td><td class="r">${c.pct.toFixed(1)}%</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">—</td></tr>`}<tr><th>Total</th><th></th><th class="r">${formatBRL(data.expenses)}</th><th class="r">100%</th></tr></tbody></table>
 <h2>Top produtos</h2><table><thead><tr><th>#</th><th>Produto</th><th class="r">Qtd</th><th class="r">Total</th></tr></thead><tbody>${data.topProducts.map((p, i) => `<tr><td>${i + 1}</td><td>${p.name}</td><td class="r">${p.qty}</td><td class="r">${formatBRL(p.total)}</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">—</td></tr>`}</tbody></table>
 <script>window.onload=()=>setTimeout(()=>window.print(),300)</script>
 </body></html>`;
@@ -260,6 +286,53 @@ export default function Relatorios() {
                 <span className="font-semibold">{formatBRL(m.total)}</span>
               </li>
             ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card className="mt-4 p-4 shadow-card-retro">
+        <div className="flex items-baseline justify-between mb-3">
+          <h3 className="font-display text-base">Despesas por categoria</h3>
+          <span className="text-xs text-muted-foreground">{formatBRL(data.expenses)}</span>
+        </div>
+        {data.byCategory.length === 0 ? <p className="text-sm text-muted-foreground">Sem despesas no período.</p> : (
+          <ul className="space-y-3">
+            {(() => {
+              const groups = new Map<string, { total: number; count: number; pct: number; subs: { name: string; total: number; count: number; pct: number }[] }>();
+              data.byCategory.forEach((c) => {
+                const parts = c.category.split(/\s*[\/>]\s*/);
+                const parent = parts[0];
+                const sub = parts.slice(1).join(" / ");
+                const g = groups.get(parent) ?? { total: 0, count: 0, pct: 0, subs: [] };
+                g.total += c.total; g.count += c.count; g.pct += c.pct;
+                if (sub) g.subs.push({ name: sub, total: c.total, count: c.count, pct: c.pct });
+                groups.set(parent, g);
+              });
+              return Array.from(groups.entries()).sort((a, b) => b[1].total - a[1].total).map(([parent, g]) => (
+                <li key={parent}>
+                  <div className="flex justify-between items-baseline gap-2 text-sm">
+                    <span className="font-semibold truncate">{parent}</span>
+                    <span className="text-right shrink-0">
+                      <span className="font-semibold">{formatBRL(g.total)}</span>
+                      <span className="text-[10px] text-muted-foreground ml-1">{g.pct.toFixed(1)}% • {g.count}</span>
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full bg-primary" style={{ width: `${Math.min(100, g.pct)}%` }} />
+                  </div>
+                  {g.subs.length > 0 && (
+                    <ul className="mt-1.5 ml-3 space-y-0.5">
+                      {g.subs.sort((a, b) => b.total - a.total).map((s) => (
+                        <li key={s.name} className="flex justify-between text-xs text-muted-foreground">
+                          <span className="truncate">↳ {s.name}</span>
+                          <span><span className="font-medium text-foreground">{formatBRL(s.total)}</span> · {s.pct.toFixed(1)}%</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ));
+            })()}
           </ul>
         )}
       </Card>
