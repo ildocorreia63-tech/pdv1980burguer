@@ -291,6 +291,53 @@ export default function Relatorios() {
       </Card>
 
       <Card className="mt-4 p-4 shadow-card-retro">
+        <div className="flex items-baseline justify-between mb-3">
+          <h3 className="font-display text-base">Despesas por categoria</h3>
+          <span className="text-xs text-muted-foreground">{formatBRL(data.expenses)}</span>
+        </div>
+        {data.byCategory.length === 0 ? <p className="text-sm text-muted-foreground">Sem despesas no período.</p> : (
+          <ul className="space-y-3">
+            {(() => {
+              const groups = new Map<string, { total: number; count: number; pct: number; subs: { name: string; total: number; count: number; pct: number }[] }>();
+              data.byCategory.forEach((c) => {
+                const parts = c.category.split(/\s*[\/>]\s*/);
+                const parent = parts[0];
+                const sub = parts.slice(1).join(" / ");
+                const g = groups.get(parent) ?? { total: 0, count: 0, pct: 0, subs: [] };
+                g.total += c.total; g.count += c.count; g.pct += c.pct;
+                if (sub) g.subs.push({ name: sub, total: c.total, count: c.count, pct: c.pct });
+                groups.set(parent, g);
+              });
+              return Array.from(groups.entries()).sort((a, b) => b[1].total - a[1].total).map(([parent, g]) => (
+                <li key={parent}>
+                  <div className="flex justify-between items-baseline gap-2 text-sm">
+                    <span className="font-semibold truncate">{parent}</span>
+                    <span className="text-right shrink-0">
+                      <span className="font-semibold">{formatBRL(g.total)}</span>
+                      <span className="text-[10px] text-muted-foreground ml-1">{g.pct.toFixed(1)}% • {g.count}</span>
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full bg-primary" style={{ width: `${Math.min(100, g.pct)}%` }} />
+                  </div>
+                  {g.subs.length > 0 && (
+                    <ul className="mt-1.5 ml-3 space-y-0.5">
+                      {g.subs.sort((a, b) => b.total - a.total).map((s) => (
+                        <li key={s.name} className="flex justify-between text-xs text-muted-foreground">
+                          <span className="truncate">↳ {s.name}</span>
+                          <span><span className="font-medium text-foreground">{formatBRL(s.total)}</span> · {s.pct.toFixed(1)}%</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ));
+            })()}
+          </ul>
+        )}
+      </Card>
+
+      <Card className="mt-4 p-4 shadow-card-retro">
         <h3 className="font-display text-base mb-3">Top produtos</h3>
         {data.topProducts.length === 0 ? <p className="text-sm text-muted-foreground">Sem vendas.</p> : (
           <ul className="space-y-2">
