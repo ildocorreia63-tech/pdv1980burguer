@@ -27,6 +27,7 @@ export default function Relatorios() {
     salesCount: 0, avgTicket: 0,
     byMethod: [] as { method: string; total: number }[],
     topProducts: [] as { name: string; qty: number; total: number }[],
+    byCategory: [] as { category: string; total: number; count: number; pct: number }[],
   });
 
   const { startDate, endDate } = useMemo(() => {
