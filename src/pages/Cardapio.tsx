@@ -381,6 +381,11 @@ export default function Cardapio() {
           <div className="mt-3 space-y-2">
             {cart.map((it) => (
               <Card key={it.product.id} className="p-3 flex items-center gap-3">
+                <div className="h-12 w-12 shrink-0 rounded-md overflow-hidden bg-muted">
+                  {it.product.image_url ? (
+                    <img src={it.product.image_url} alt={it.product.name} loading="lazy" className="h-full w-full object-cover" />
+                  ) : null}
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{it.product.name}</p>
                   <p className="text-xs text-muted-foreground">{formatBRL(it.product.price)} × {it.qty} = {formatBRL(it.product.price * it.qty)}</p>
