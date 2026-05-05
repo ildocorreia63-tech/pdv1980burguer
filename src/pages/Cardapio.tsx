@@ -374,12 +374,25 @@ export default function Cardapio() {
       <main className="mx-auto max-w-2xl px-4 py-4">
         <div className="grid grid-cols-2 gap-3">
           {filtered.map((p) => (
-            <button key={p.id} onClick={() => addToCart(p)} className="text-left rounded-xl border border-border bg-card overflow-hidden shadow-card-retro active:scale-[0.97] transition flex flex-col">
-              <div className="aspect-square w-full bg-muted overflow-hidden">
+            <button
+              key={p.id}
+              onClick={() => p.active && addToCart(p)}
+              disabled={!p.active}
+              className={cn(
+                "text-left rounded-xl border border-border bg-card overflow-hidden shadow-card-retro transition flex flex-col relative",
+                p.active ? "active:scale-[0.97]" : "opacity-60 cursor-not-allowed"
+              )}
+            >
+              <div className="aspect-square w-full bg-muted overflow-hidden relative">
                 {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} loading="lazy" className="h-full w-full object-cover" />
+                  <img src={p.image_url} alt={p.name} loading="lazy" className={cn("h-full w-full object-cover", !p.active && "grayscale")} />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center text-muted-foreground text-[10px]">Sem foto</div>
+                )}
+                {!p.active && (
+                  <span className="absolute top-2 left-2 rounded-full bg-destructive text-destructive-foreground text-[10px] font-display px-2 py-0.5">
+                    Indisponível
+                  </span>
                 )}
               </div>
               <div className="p-3 flex-1 flex flex-col">
