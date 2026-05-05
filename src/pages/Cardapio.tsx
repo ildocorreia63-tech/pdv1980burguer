@@ -289,7 +289,7 @@ export default function Cardapio() {
         .single();
       if (error) throw error;
 
-      const items = cart.map((c) => ({
+      const items = availableCart.map((c) => ({
         online_order_id: order.id,
         product_id: c.product.id,
         product_name: c.product.name,
