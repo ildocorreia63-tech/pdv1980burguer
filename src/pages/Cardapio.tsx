@@ -86,19 +86,17 @@ export default function Cardapio() {
   const loadProducts = async () => {
     const { data } = await supabase
       .from("products")
-      .select("id,name,price,description,category_id,image_url")
-      .eq("active", true)
+      .select("id,name,price,description,category_id,image_url,active")
       .order("name");
     const list = (data ?? []).map((x) => ({ ...x, price: Number(x.price) }));
     setProducts(list);
-    // Sync cart items with latest product data (image, price, name)
+    // Sync cart items: update fresh data; mark unavailable when product not found or inactive.
     setCart((c) =>
-      c
-        .map((it) => {
-          const fresh = list.find((p) => p.id === it.product.id);
-          return fresh ? { ...it, product: fresh } : it;
-        })
-        .filter((it) => list.some((p) => p.id === it.product.id))
+      c.map((it) => {
+        const fresh = list.find((p) => p.id === it.product.id);
+        if (!fresh) return { ...it, unavailable: true };
+        return { ...it, product: fresh, unavailable: !fresh.active };
+      })
     );
   };
 
