@@ -251,7 +251,8 @@ export default function Cardapio() {
   };
 
   const submitOrder = async () => {
-    if (cart.length === 0) return toast.error("Carrinho vazio");
+    const availableCart = cart.filter((x) => !x.unavailable);
+    if (availableCart.length === 0) return toast.error("Nenhum item disponível no carrinho");
     if (!name.trim()) return toast.error("Informe seu nome");
     if (!phone.trim()) return toast.error("Informe o telefone");
     if (orderType === "delivery") {
