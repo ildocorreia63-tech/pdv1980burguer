@@ -83,19 +83,48 @@ export default function Cardapio() {
     return () => clearInterval(id);
   }, []);
 
+  const loadProducts = async () => {
+    const { data } = await supabase
+      .from("products")
+      .select("id,name,price,description,category_id,image_url")
+      .eq("active", true)
+      .order("name");
+    const list = (data ?? []).map((x) => ({ ...x, price: Number(x.price) }));
+    setProducts(list);
+    // Sync cart items with latest product data (image, price, name)
+    setCart((c) =>
+      c
+        .map((it) => {
+          const fresh = list.find((p) => p.id === it.product.id);
+          return fresh ? { ...it, product: fresh } : it;
+        })
+        .filter((it) => list.some((p) => p.id === it.product.id))
+    );
+  };
+
   useEffect(() => {
     (async () => {
-      const [p, c, z, s] = await Promise.all([
-        supabase.from("products").select("id,name,price,description,category_id,image_url").eq("active", true).order("name"),
+      const [c, z, s] = await Promise.all([
         supabase.from("categories").select("id,name").order("sort_order"),
         supabase.from("delivery_zones").select("id,name,fee").eq("active", true).order("sort_order"),
         supabase.from("store_settings").select("store_name,whatsapp_number,welcome_message,menu_open,pix_key,pix_receiver_name,pix_city,business_hours").maybeSingle(),
       ]);
-      setProducts((p.data ?? []).map((x) => ({ ...x, price: Number(x.price) })));
       setCats(c.data ?? []);
       setZones((z.data ?? []).map((x) => ({ ...x, fee: Number(x.fee) })));
       setSettings(s.data as Settings | null);
     })();
+    loadProducts();
+
+    const channel = supabase
+      .channel("cardapio_products")
+      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => loadProducts())
+      .on("postgres_changes", { event: "*", schema: "public", table: "categories" }, async () => {
+        const { data } = await supabase.from("categories").select("id,name").order("sort_order");
+        setCats(data ?? []);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = useMemo(() => products.filter((p) => {
