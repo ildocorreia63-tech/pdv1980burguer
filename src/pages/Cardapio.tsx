@@ -146,8 +146,9 @@ export default function Cardapio() {
   const setQty = (id: string, delta: number) => setCart((c) => c.map((x) => x.product.id === id ? { ...x, qty: x.qty + delta } : x).filter((x) => x.qty > 0));
   const removeItem = (id: string) => setCart((c) => c.filter((x) => x.product.id !== id));
 
-  const subtotal = cart.reduce((s, x) => s + x.product.price * x.qty, 0);
-  const totalQty = cart.reduce((s, x) => s + x.qty, 0);
+  const unavailableCount = cart.filter((x) => x.unavailable).length;
+  const subtotal = cart.reduce((s, x) => s + (x.unavailable ? 0 : x.product.price * x.qty), 0);
+  const totalQty = cart.reduce((s, x) => s + (x.unavailable ? 0 : x.qty), 0);
   const selectedZone = zones.find((z) => z.id === zoneId);
   const deliveryFee = orderType === "delivery" ? (selectedZone?.fee ?? 0) : 0;
   const total = subtotal + deliveryFee;
