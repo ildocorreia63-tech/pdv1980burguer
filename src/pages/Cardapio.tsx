@@ -21,7 +21,7 @@ import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentS
 const CART_KEY = "cardapio:cart:v1";
 const CHECKOUT_KEY = "cardapio:checkout:v1";
 
-type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null };
+type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null; active: boolean };
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
 type CartItem = { product: Product; qty: number };
