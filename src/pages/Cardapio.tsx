@@ -132,8 +132,6 @@ export default function Cardapio() {
     return true;
   }), [products, activeCat, search]);
 
-  const unavailableCount = cart.filter((x) => x.unavailable).length;
-  const availableSubtotal = cart.reduce((s, x) => s + (x.unavailable ? 0 : x.product.price * x.qty), 0);
 
   const addToCart = (p: Product) => {
     setCart((c) => {
