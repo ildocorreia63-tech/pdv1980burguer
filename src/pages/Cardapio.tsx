@@ -208,7 +208,7 @@ export default function Cardapio() {
     }
     lines.push("");
     lines.push("*Itens:*");
-    cart.forEach((c) => lines.push(`• ${c.qty}x ${c.product.name} — ${formatBRL(c.product.price * c.qty)}`));
+    cart.filter((c) => !c.unavailable).forEach((c) => lines.push(`• ${c.qty}x ${c.product.name} — ${formatBRL(c.product.price * c.qty)}`));
     lines.push("");
     lines.push(`*Subtotal:* ${formatBRL(subtotal)}`);
     if (deliveryFee > 0) lines.push(`*Taxa entrega:* ${formatBRL(deliveryFee)}`);
