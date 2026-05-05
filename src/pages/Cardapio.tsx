@@ -408,22 +408,31 @@ export default function Cardapio() {
         </SheetTrigger>
         <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
           <SheetHeader><SheetTitle className="font-display text-2xl text-left">Seu pedido</SheetTitle></SheetHeader>
+          {unavailableCount > 0 && (
+            <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive p-3 text-sm">
+              {unavailableCount === 1 ? "1 item está indisponível" : `${unavailableCount} itens estão indisponíveis`} e não será incluído no pedido. Remova ou aguarde a reposição.
+            </div>
+          )}
           <div className="mt-3 space-y-2">
             {cart.map((it) => (
-              <Card key={it.product.id} className="p-3 flex items-center gap-3">
+              <Card key={it.product.id} className={cn("p-3 flex items-center gap-3", it.unavailable && "opacity-70 border-destructive/40")}>
                 <div className="h-12 w-12 shrink-0 rounded-md overflow-hidden bg-muted">
                   {it.product.image_url ? (
-                    <img src={it.product.image_url} alt={it.product.name} loading="lazy" className="h-full w-full object-cover" />
+                    <img src={it.product.image_url} alt={it.product.name} loading="lazy" className={cn("h-full w-full object-cover", it.unavailable && "grayscale")} />
                   ) : null}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{it.product.name}</p>
-                  <p className="text-xs text-muted-foreground">{formatBRL(it.product.price)} × {it.qty} = {formatBRL(it.product.price * it.qty)}</p>
+                  {it.unavailable ? (
+                    <p className="text-xs font-medium text-destructive">Indisponível no momento</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">{formatBRL(it.product.price)} × {it.qty} = {formatBRL(it.product.price * it.qty)}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(it.product.id, -1)}><Minus className="h-3 w-3" /></Button>
+                  <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(it.product.id, -1)} disabled={it.unavailable}><Minus className="h-3 w-3" /></Button>
                   <span className="w-7 text-center font-display text-lg">{it.qty}</span>
-                  <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(it.product.id, 1)}><Plus className="h-3 w-3" /></Button>
+                  <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(it.product.id, 1)} disabled={it.unavailable}><Plus className="h-3 w-3" /></Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => removeItem(it.product.id)}><Trash2 className="h-3 w-3" /></Button>
                 </div>
               </Card>
@@ -433,7 +442,7 @@ export default function Cardapio() {
             <span className="font-display text-lg">Subtotal</span>
             <span className="font-display text-2xl text-primary">{formatBRL(subtotal)}</span>
           </div>
-          <Button className="w-full mt-3 h-12 font-display text-lg" onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}>
+          <Button className="w-full mt-3 h-12 font-display text-lg" onClick={() => { setCartOpen(false); setCheckoutOpen(true); }} disabled={totalQty === 0}>
             Continuar
           </Button>
           <Button
