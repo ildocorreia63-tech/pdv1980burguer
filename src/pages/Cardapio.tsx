@@ -21,10 +21,10 @@ import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentS
 const CART_KEY = "cardapio:cart:v1";
 const CHECKOUT_KEY = "cardapio:checkout:v1";
 
-type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null };
+type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null; active: boolean };
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
-type CartItem = { product: Product; qty: number };
+type CartItem = { product: Product; qty: number; unavailable?: boolean };
 type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; pix_key: string | null; pix_receiver_name: string | null; pix_city: string | null; business_hours: BusinessHours | null };
 
 export default function Cardapio() {
@@ -86,19 +86,17 @@ export default function Cardapio() {
   const loadProducts = async () => {
     const { data } = await supabase
       .from("products")
-      .select("id,name,price,description,category_id,image_url")
-      .eq("active", true)
+      .select("id,name,price,description,category_id,image_url,active")
       .order("name");
     const list = (data ?? []).map((x) => ({ ...x, price: Number(x.price) }));
     setProducts(list);
-    // Sync cart items with latest product data (image, price, name)
+    // Sync cart items: update fresh data; mark unavailable when product not found or inactive.
     setCart((c) =>
-      c
-        .map((it) => {
-          const fresh = list.find((p) => p.id === it.product.id);
-          return fresh ? { ...it, product: fresh } : it;
-        })
-        .filter((it) => list.some((p) => p.id === it.product.id))
+      c.map((it) => {
+        const fresh = list.find((p) => p.id === it.product.id);
+        if (!fresh) return { ...it, unavailable: true };
+        return { ...it, product: fresh, unavailable: !fresh.active };
+      })
     );
   };
 
@@ -128,10 +126,13 @@ export default function Cardapio() {
   }, []);
 
   const filtered = useMemo(() => products.filter((p) => {
+    const inCart = cart.some((c) => c.product.id === p.id);
+    if (!p.active && !inCart) return false;
     if (activeCat !== "all" && p.category_id !== activeCat) return false;
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
-  }), [products, activeCat, search]);
+  }), [products, activeCat, search, cart]);
+
 
   const addToCart = (p: Product) => {
     setCart((c) => {
@@ -144,8 +145,9 @@ export default function Cardapio() {
   const setQty = (id: string, delta: number) => setCart((c) => c.map((x) => x.product.id === id ? { ...x, qty: x.qty + delta } : x).filter((x) => x.qty > 0));
   const removeItem = (id: string) => setCart((c) => c.filter((x) => x.product.id !== id));
 
-  const subtotal = cart.reduce((s, x) => s + x.product.price * x.qty, 0);
-  const totalQty = cart.reduce((s, x) => s + x.qty, 0);
+  const unavailableCount = cart.filter((x) => x.unavailable).length;
+  const subtotal = cart.reduce((s, x) => s + (x.unavailable ? 0 : x.product.price * x.qty), 0);
+  const totalQty = cart.reduce((s, x) => s + (x.unavailable ? 0 : x.qty), 0);
   const selectedZone = zones.find((z) => z.id === zoneId);
   const deliveryFee = orderType === "delivery" ? (selectedZone?.fee ?? 0) : 0;
   const total = subtotal + deliveryFee;
@@ -207,7 +209,7 @@ export default function Cardapio() {
     }
     lines.push("");
     lines.push("*Itens:*");
-    cart.forEach((c) => lines.push(`• ${c.qty}x ${c.product.name} — ${formatBRL(c.product.price * c.qty)}`));
+    cart.filter((c) => !c.unavailable).forEach((c) => lines.push(`• ${c.qty}x ${c.product.name} — ${formatBRL(c.product.price * c.qty)}`));
     lines.push("");
     lines.push(`*Subtotal:* ${formatBRL(subtotal)}`);
     if (deliveryFee > 0) lines.push(`*Taxa entrega:* ${formatBRL(deliveryFee)}`);
@@ -250,7 +252,8 @@ export default function Cardapio() {
   };
 
   const submitOrder = async () => {
-    if (cart.length === 0) return toast.error("Carrinho vazio");
+    const availableCart = cart.filter((x) => !x.unavailable);
+    if (availableCart.length === 0) return toast.error("Nenhum item disponível no carrinho");
     if (!name.trim()) return toast.error("Informe seu nome");
     if (!phone.trim()) return toast.error("Informe o telefone");
     if (orderType === "delivery") {
@@ -287,7 +290,7 @@ export default function Cardapio() {
         .single();
       if (error) throw error;
 
-      const items = cart.map((c) => ({
+      const items = availableCart.map((c) => ({
         online_order_id: order.id,
         product_id: c.product.id,
         product_name: c.product.name,
@@ -371,12 +374,25 @@ export default function Cardapio() {
       <main className="mx-auto max-w-2xl px-4 py-4">
         <div className="grid grid-cols-2 gap-3">
           {filtered.map((p) => (
-            <button key={p.id} onClick={() => addToCart(p)} className="text-left rounded-xl border border-border bg-card overflow-hidden shadow-card-retro active:scale-[0.97] transition flex flex-col">
-              <div className="aspect-square w-full bg-muted overflow-hidden">
+            <button
+              key={p.id}
+              onClick={() => p.active && addToCart(p)}
+              disabled={!p.active}
+              className={cn(
+                "text-left rounded-xl border border-border bg-card overflow-hidden shadow-card-retro transition flex flex-col relative",
+                p.active ? "active:scale-[0.97]" : "opacity-60 cursor-not-allowed"
+              )}
+            >
+              <div className="aspect-square w-full bg-muted overflow-hidden relative">
                 {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} loading="lazy" className="h-full w-full object-cover" />
+                  <img src={p.image_url} alt={p.name} loading="lazy" className={cn("h-full w-full object-cover", !p.active && "grayscale")} />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center text-muted-foreground text-[10px]">Sem foto</div>
+                )}
+                {!p.active && (
+                  <span className="absolute top-2 left-2 rounded-full bg-destructive text-destructive-foreground text-[10px] font-display px-2 py-0.5">
+                    Indisponível
+                  </span>
                 )}
               </div>
               <div className="p-3 flex-1 flex flex-col">
@@ -407,22 +423,31 @@ export default function Cardapio() {
         </SheetTrigger>
         <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
           <SheetHeader><SheetTitle className="font-display text-2xl text-left">Seu pedido</SheetTitle></SheetHeader>
+          {unavailableCount > 0 && (
+            <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 text-destructive p-3 text-sm">
+              {unavailableCount === 1 ? "1 item está indisponível" : `${unavailableCount} itens estão indisponíveis`} e não será incluído no pedido. Remova ou aguarde a reposição.
+            </div>
+          )}
           <div className="mt-3 space-y-2">
             {cart.map((it) => (
-              <Card key={it.product.id} className="p-3 flex items-center gap-3">
+              <Card key={it.product.id} className={cn("p-3 flex items-center gap-3", it.unavailable && "opacity-70 border-destructive/40")}>
                 <div className="h-12 w-12 shrink-0 rounded-md overflow-hidden bg-muted">
                   {it.product.image_url ? (
-                    <img src={it.product.image_url} alt={it.product.name} loading="lazy" className="h-full w-full object-cover" />
+                    <img src={it.product.image_url} alt={it.product.name} loading="lazy" className={cn("h-full w-full object-cover", it.unavailable && "grayscale")} />
                   ) : null}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{it.product.name}</p>
-                  <p className="text-xs text-muted-foreground">{formatBRL(it.product.price)} × {it.qty} = {formatBRL(it.product.price * it.qty)}</p>
+                  {it.unavailable ? (
+                    <p className="text-xs font-medium text-destructive">Indisponível no momento</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">{formatBRL(it.product.price)} × {it.qty} = {formatBRL(it.product.price * it.qty)}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(it.product.id, -1)}><Minus className="h-3 w-3" /></Button>
+                  <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(it.product.id, -1)} disabled={it.unavailable}><Minus className="h-3 w-3" /></Button>
                   <span className="w-7 text-center font-display text-lg">{it.qty}</span>
-                  <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(it.product.id, 1)}><Plus className="h-3 w-3" /></Button>
+                  <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setQty(it.product.id, 1)} disabled={it.unavailable}><Plus className="h-3 w-3" /></Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => removeItem(it.product.id)}><Trash2 className="h-3 w-3" /></Button>
                 </div>
               </Card>
@@ -432,7 +457,7 @@ export default function Cardapio() {
             <span className="font-display text-lg">Subtotal</span>
             <span className="font-display text-2xl text-primary">{formatBRL(subtotal)}</span>
           </div>
-          <Button className="w-full mt-3 h-12 font-display text-lg" onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}>
+          <Button className="w-full mt-3 h-12 font-display text-lg" onClick={() => { setCartOpen(false); setCheckoutOpen(true); }} disabled={totalQty === 0}>
             Continuar
           </Button>
           <Button
