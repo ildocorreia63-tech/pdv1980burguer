@@ -24,7 +24,7 @@ const CHECKOUT_KEY = "cardapio:checkout:v1";
 type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null; active: boolean };
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
-type CartItem = { product: Product; qty: number };
+type CartItem = { product: Product; qty: number; unavailable?: boolean };
 type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; pix_key: string | null; pix_receiver_name: string | null; pix_city: string | null; business_hours: BusinessHours | null };
 
 export default function Cardapio() {
