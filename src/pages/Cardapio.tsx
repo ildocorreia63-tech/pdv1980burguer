@@ -126,13 +126,13 @@ export default function Cardapio() {
   }, []);
 
   const filtered = useMemo(() => products.filter((p) => {
-    if (!p.active) return false;
     if (activeCat !== "all" && p.category_id !== activeCat) return false;
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   }), [products, activeCat, search]);
 
   const unavailableCount = cart.filter((x) => x.unavailable).length;
+  const availableSubtotal = cart.reduce((s, x) => s + (x.unavailable ? 0 : x.product.price * x.qty), 0);
 
   const addToCart = (p: Product) => {
     setCart((c) => {
