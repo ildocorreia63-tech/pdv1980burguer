@@ -61,7 +61,10 @@ export default function PedidosOnline() {
   const [orders, setOrders] = useState<Order[]>([]);
   type Filter = "pending_payment" | "pending" | "accepted" | "completed" | "all";
   const [filter, setFilter] = useState<Filter>("pending");
+  const [period, setPeriod] = useState<Period>("30d");
+  const [range, setRange] = useState<DateRange | undefined>();
   const [loading, setLoading] = useState(true);
+
 
   const load = async () => {
     const { data } = await supabase
