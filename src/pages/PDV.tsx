@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Minus, Trash2, ShoppingCart, Search } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingCart, Search, ImageIcon } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -17,7 +17,7 @@ import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentS
 
 const PDV_CART_KEY = "pdv:cart:v1";
 
-type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null };
+type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null };
 type Category = { id: string; name: string };
 type CartItem = { product: Product; qty: number };
 
@@ -33,14 +33,29 @@ export default function PDV() {
   const [openReceipt, setOpenReceipt] = useState(false);
 
   useEffect(() => {
+    const loadProducts = async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("id,name,price,description,category_id,image_url")
+        .eq("active", true)
+        .order("name");
+      setProducts((data ?? []).map((x) => ({ ...x, price: Number(x.price) })));
+    };
     (async () => {
-      const [{ data: p }, { data: c }] = await Promise.all([
-        supabase.from("products").select("id,name,price,description,category_id").eq("active", true).order("name"),
-        supabase.from("categories").select("id,name").order("sort_order"),
-      ]);
-      setProducts((p ?? []).map((x) => ({ ...x, price: Number(x.price) })));
+      const { data: c } = await supabase.from("categories").select("id,name").order("sort_order");
       setCats(c ?? []);
+      await loadProducts();
     })();
+
+    const channel = supabase
+      .channel("pdv_products")
+      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => loadProducts())
+      .on("postgres_changes", { event: "*", schema: "public", table: "categories" }, async () => {
+        const { data } = await supabase.from("categories").select("id,name").order("sort_order");
+        setCats(data ?? []);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const filtered = useMemo(() => {
@@ -106,11 +121,20 @@ export default function PDV() {
           <button
             key={p.id}
             onClick={() => addToCart(p)}
-            className="text-left rounded-xl border border-border bg-card p-3 shadow-card-retro active:scale-[0.97] transition"
+            className="text-left rounded-xl border border-border bg-card overflow-hidden shadow-card-retro active:scale-[0.97] transition flex flex-col"
           >
-            <p className="font-display text-base leading-tight line-clamp-2">{p.name}</p>
-            <p className="mt-1 text-[10px] text-muted-foreground line-clamp-2 min-h-[28px]">{p.description}</p>
-            <p className="mt-2 font-display text-lg text-primary">{formatBRL(p.price)}</p>
+            <div className="aspect-square w-full bg-muted flex items-center justify-center overflow-hidden">
+              {p.image_url ? (
+                <img src={p.image_url} alt={p.name} loading="lazy" className="h-full w-full object-cover" />
+              ) : (
+                <ImageIcon className="h-8 w-8 text-muted-foreground" />
+              )}
+            </div>
+            <div className="p-3">
+              <p className="font-display text-base leading-tight line-clamp-2">{p.name}</p>
+              <p className="mt-1 text-[10px] text-muted-foreground line-clamp-2 min-h-[28px]">{p.description}</p>
+              <p className="mt-2 font-display text-lg text-primary">{formatBRL(p.price)}</p>
+            </div>
           </button>
         ))}
         {filtered.length === 0 && (
