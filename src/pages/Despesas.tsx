@@ -110,6 +110,8 @@ export default function Despesas() {
 
   const totalToday = list.filter((e) => e.expense_date === today).reduce((s, e) => s + e.amount, 0);
   const totalMonth = list.filter((e) => e.expense_date >= monthIso).reduce((s, e) => s + e.amount, 0);
+  const totalFiltered = filtered.reduce((s, e) => s + e.amount, 0);
+  const periodStr = startStr ? `${formatLocalDate(startStr)} a ${formatLocalDate(endStr)}` : "Todas as despesas";
 
   return (
     <AppShell
@@ -149,8 +151,44 @@ export default function Despesas() {
         </Card>
       </div>
 
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-lg border border-border bg-card p-1 shadow-sm">
+          {(["today", "7d", "30d", "all"] as Period[]).map((p) => (
+            <button key={p} onClick={() => setPeriod(p)}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${period === p ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              {periodLabel[p]}
+            </button>
+          ))}
+        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant={period === "custom" ? "default" : "outline"} size="sm" className="h-8 text-xs">
+              <CalendarIcon className="h-3.5 w-3.5" />
+              {period === "custom" && range?.from
+                ? range.to && range.to.getTime() !== range.from.getTime()
+                  ? `${format(range.from, "dd/MM", { locale: ptBR })} – ${format(range.to, "dd/MM", { locale: ptBR })}`
+                  : format(range.from, "dd/MM/yyyy", { locale: ptBR })
+                : "Datas"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="range" selected={range} onSelect={(r) => { setRange(r); if (r?.from) setPeriod("custom"); }}
+              numberOfMonths={1} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
+          </PopoverContent>
+        </Popover>
+        {period !== "30d" && (
+          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => { setPeriod("30d"); setRange(undefined); }}>
+            <X className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+      <div className="mb-2 flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>{periodStr}</span>
+        <span className="font-semibold text-destructive">{filtered.length} • {formatBRL(totalFiltered)}</span>
+      </div>
+
       <div className="space-y-2">
-        {list.map((e) => (
+        {filtered.map((e) => (
           <Card key={e.id} className="p-3 shadow-card-retro flex items-center justify-between gap-2">
             <div className="min-w-0">
               <p className="font-medium truncate">{e.description}</p>
@@ -168,8 +206,9 @@ export default function Despesas() {
             </div>
           </Card>
         ))}
-        {list.length === 0 && <p className="text-center text-sm text-muted-foreground py-6">Nenhuma despesa registrada.</p>}
+        {filtered.length === 0 && <p className="text-center text-sm text-muted-foreground py-6">Nenhuma despesa no período.</p>}
       </div>
     </AppShell>
   );
 }
+
