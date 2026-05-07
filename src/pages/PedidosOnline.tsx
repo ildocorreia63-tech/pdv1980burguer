@@ -71,7 +71,7 @@ export default function PedidosOnline() {
       .from("online_orders")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(500);
     const ords = (data ?? []).map((o: any) => ({
       ...o,
       delivery_fee: Number(o.delivery_fee),
