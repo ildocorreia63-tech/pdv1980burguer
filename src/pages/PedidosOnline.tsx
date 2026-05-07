@@ -1,13 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatBRL, formatDate } from "@/lib/format";
-import { Check, X, MapPin, Store, Phone, Clock, MessageCircle } from "lucide-react";
+import { Check, X, MapPin, Store, Phone, Clock, MessageCircle, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
+
+type Period = "today" | "7d" | "30d" | "all" | "custom";
+const periodLabel: Record<Period, string> = { today: "Hoje", "7d": "7d", "30d": "30d", all: "Tudo", custom: "Período" };
+
 
 type OrderItem = { id: string; product_id: string | null; product_name: string; unit_price: number; quantity: number; subtotal: number };
 type Order = {
@@ -51,14 +61,17 @@ export default function PedidosOnline() {
   const [orders, setOrders] = useState<Order[]>([]);
   type Filter = "pending_payment" | "pending" | "accepted" | "completed" | "all";
   const [filter, setFilter] = useState<Filter>("pending");
+  const [period, setPeriod] = useState<Period>("30d");
+  const [range, setRange] = useState<DateRange | undefined>();
   const [loading, setLoading] = useState(true);
+
 
   const load = async () => {
     const { data } = await supabase
       .from("online_orders")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(500);
     const ords = (data ?? []).map((o: any) => ({
       ...o,
       delivery_fee: Number(o.delivery_fee),
@@ -171,14 +184,35 @@ export default function PedidosOnline() {
     window.open(`https://wa.me/55${phone}`, "_blank");
   };
 
-  const counts = {
-    pending_payment: orders.filter((o) => o.status === "pending_payment").length,
-    pending: orders.filter((o) => o.status === "pending").length,
-    accepted: orders.filter((o) => o.status === "accepted").length,
-    completed: orders.filter((o) => o.status === "completed").length,
-    all: orders.length,
+  const { startMs, endMs } = useMemo(() => {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const end = new Date(); end.setHours(23, 59, 59, 999);
+    if (period === "all") return { startMs: 0, endMs: Number.MAX_SAFE_INTEGER };
+    if (period === "7d") start.setDate(start.getDate() - 6);
+    else if (period === "30d") start.setDate(start.getDate() - 29);
+    else if (period === "custom" && range?.from) {
+      start.setTime(range.from.getTime()); start.setHours(0, 0, 0, 0);
+      const t = range.to ?? range.from;
+      end.setTime(t.getTime()); end.setHours(23, 59, 59, 999);
+    }
+    return { startMs: start.getTime(), endMs: end.getTime() };
+  }, [period, range]);
+
+  const inPeriod = (o: Order) => {
+    const t = new Date(o.created_at).getTime();
+    return t >= startMs && t <= endMs;
   };
-  const visible = orders.filter((o) => filter === "all" ? true : o.status === filter);
+  const periodOrders = orders.filter(inPeriod);
+
+  const counts = {
+    pending_payment: periodOrders.filter((o) => o.status === "pending_payment").length,
+    pending: periodOrders.filter((o) => o.status === "pending").length,
+    accepted: periodOrders.filter((o) => o.status === "accepted").length,
+    completed: periodOrders.filter((o) => o.status === "completed").length,
+    all: periodOrders.length,
+  };
+  const visible = periodOrders.filter((o) => filter === "all" ? true : o.status === filter);
+  const periodTotal = visible.reduce((s, o) => s + o.total, 0);
 
   const filterBtns: { key: Filter; label: string }[] = [
     { key: "pending_payment", label: "Aguard. PIX" },
@@ -190,6 +224,37 @@ export default function PedidosOnline() {
 
   return (
     <AppShell title="Pedidos Online">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-lg border border-border bg-card p-1 shadow-sm">
+          {(["today", "7d", "30d", "all"] as Period[]).map((p) => (
+            <button key={p} onClick={() => setPeriod(p)}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition ${period === p ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              {periodLabel[p]}
+            </button>
+          ))}
+        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant={period === "custom" ? "default" : "outline"} size="sm" className="h-8 text-xs">
+              <CalendarIcon className="h-3.5 w-3.5" />
+              {period === "custom" && range?.from
+                ? range.to && range.to.getTime() !== range.from.getTime()
+                  ? `${format(range.from, "dd/MM", { locale: ptBR })} – ${format(range.to, "dd/MM", { locale: ptBR })}`
+                  : format(range.from, "dd/MM/yyyy", { locale: ptBR })
+                : "Datas"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="range" selected={range} onSelect={(r) => { setRange(r); if (r?.from) setPeriod("custom"); }}
+              numberOfMonths={1} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
+          </PopoverContent>
+        </Popover>
+      </div>
+      <p className="mb-2 text-[11px] text-muted-foreground flex justify-between">
+        <span>{visible.length} pedidos</span>
+        <span className="font-semibold text-primary">{formatBRL(periodTotal)}</span>
+      </p>
+
       <div className="flex gap-2 mb-3 overflow-x-auto pb-1 -mx-1 px-1">
         {filterBtns.map((f) => (
           <Button
@@ -203,6 +268,7 @@ export default function PedidosOnline() {
           </Button>
         ))}
       </div>
+
 
       {loading && <p className="text-center text-sm text-muted-foreground py-8">Carregando...</p>}
 
