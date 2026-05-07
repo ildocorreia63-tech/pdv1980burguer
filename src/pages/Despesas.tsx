@@ -42,17 +42,40 @@ export default function Despesas() {
   };
   const [date, setDate] = useState(localToday());
   const [notes, setNotes] = useState("");
+  const [period, setPeriod] = useState<Period>("30d");
+  const [range, setRange] = useState<DateRange | undefined>();
 
   const load = async () => {
     const { data } = await supabase
       .from("expenses")
       .select("*")
       .order("expense_date", { ascending: false })
-      .limit(60);
+      .limit(500);
     setList((data ?? []).map((e) => ({ ...e, amount: Number(e.amount) })));
   };
 
   useEffect(() => { load(); }, []);
+
+  const { startStr, endStr } = useMemo(() => {
+    const toStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const end = new Date();
+    const start = new Date();
+    if (period === "today") { /* same day */ }
+    else if (period === "7d") start.setDate(start.getDate() - 6);
+    else if (period === "30d") start.setDate(start.getDate() - 29);
+    else if (period === "all") return { startStr: "", endStr: "" };
+    else if (period === "custom" && range?.from) {
+      const t = range.to ?? range.from;
+      return { startStr: toStr(range.from), endStr: toStr(t) };
+    }
+    return { startStr: toStr(start), endStr: toStr(end) };
+  }, [period, range]);
+
+  const filtered = useMemo(() => {
+    if (!startStr) return list;
+    return list.filter((e) => e.expense_date >= startStr && e.expense_date <= endStr);
+  }, [list, startStr, endStr]);
+
 
   const save = async () => {
     if (!user) return;
