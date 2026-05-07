@@ -1,13 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatBRL, formatDate } from "@/lib/format";
-import { Check, X, MapPin, Store, Phone, Clock, MessageCircle } from "lucide-react";
+import { Check, X, MapPin, Store, Phone, Clock, MessageCircle, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
+
+type Period = "today" | "7d" | "30d" | "all" | "custom";
+const periodLabel: Record<Period, string> = { today: "Hoje", "7d": "7d", "30d": "30d", all: "Tudo", custom: "Período" };
+
 
 type OrderItem = { id: string; product_id: string | null; product_name: string; unit_price: number; quantity: number; subtotal: number };
 type Order = {
