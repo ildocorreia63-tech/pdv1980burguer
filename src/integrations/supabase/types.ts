@@ -566,7 +566,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_store_settings: {
+        Row: {
+          business_hours: Json | null
+          id: string | null
+          menu_open: boolean | null
+          store_name: string | null
+          welcome_message: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          business_hours?: Json | null
+          id?: string | null
+          menu_open?: boolean | null
+          store_name?: string | null
+          welcome_message?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          business_hours?: Json | null
+          id?: string | null
+          menu_open?: boolean | null
+          store_name?: string | null
+          welcome_message?: string | null
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
