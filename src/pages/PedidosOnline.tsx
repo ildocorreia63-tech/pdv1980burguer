@@ -487,6 +487,8 @@ export default function PedidosOnline() {
           </p>
         )}
       </div>
+        </>
+      )}
     </AppShell>
   );
 }
