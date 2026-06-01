@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Minus, Trash2, ShoppingCart, Search, ImageIcon } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingCart, Search, ImageIcon, Utensils, Store } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -15,11 +15,16 @@ import { ReceiptDialog } from "@/components/pdv/ReceiptDialog";
 import type { ReceiptData } from "@/lib/receipt";
 import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentState";
 
-const PDV_CART_KEY = "pdv:cart:v1";
+const CARTS_KEY = "pdv:carts:v2";
+const ACTIVE_TABLE_KEY = "pdv:activeTable:v1";
+const TABLE_COUNT = 8;
 
 type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null };
 type Category = { id: string; name: string };
 type CartItem = { product: Product; qty: number };
+type CartsByTable = Record<number, CartItem[]>; // 0 = Balcão, 1..8 = Mesas
+
+const tableLabel = (n: number) => (n === 0 ? "Balcão" : `Mesa ${n}`);
 
 export default function PDV() {
   const { user } = useAuth();
@@ -27,10 +32,12 @@ export default function PDV() {
   const [cats, setCats] = useState<Category[]>([]);
   const [activeCat, setActiveCat] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const [cart, setCart] = usePersistentState<CartItem[]>(PDV_CART_KEY, []);
+  const [carts, setCarts] = usePersistentState<CartsByTable>(CARTS_KEY, {});
+  const [activeTable, setActiveTable] = usePersistentState<number>(ACTIVE_TABLE_KEY, 0);
   const [openCheckout, setOpenCheckout] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [openReceipt, setOpenReceipt] = useState(false);
+  const [openCart, setOpenCart] = useState(false);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -66,8 +73,18 @@ export default function PDV() {
     });
   }, [products, activeCat, search]);
 
+  const cart: CartItem[] = carts[activeTable] ?? [];
+
+  const updateActiveCart = (updater: (c: CartItem[]) => CartItem[]) => {
+    setCarts((prev) => {
+      const current = prev[activeTable] ?? [];
+      const next = updater(current);
+      return { ...prev, [activeTable]: next };
+    });
+  };
+
   const addToCart = (p: Product) => {
-    setCart((c) => {
+    updateActiveCart((c) => {
       const ex = c.find((x) => x.product.id === p.id);
       if (ex) return c.map((x) => (x.product.id === p.id ? { ...x, qty: x.qty + 1 } : x));
       return [...c, { product: p, qty: 1 }];
@@ -75,31 +92,56 @@ export default function PDV() {
   };
 
   const setQty = (id: string, delta: number) => {
-    setCart((c) =>
-      c
-        .map((x) => (x.product.id === id ? { ...x, qty: x.qty + delta } : x))
-        .filter((x) => x.qty > 0)
+    updateActiveCart((c) =>
+      c.map((x) => (x.product.id === id ? { ...x, qty: x.qty + delta } : x)).filter((x) => x.qty > 0)
     );
   };
 
-  const removeItem = (id: string) => setCart((c) => c.filter((x) => x.product.id !== id));
+  const removeItem = (id: string) =>
+    updateActiveCart((c) => c.filter((x) => x.product.id !== id));
 
   const subtotal = cart.reduce((s, x) => s + x.product.price * x.qty, 0);
   const totalQty = cart.reduce((s, x) => s + x.qty, 0);
 
   const handleConfirmed = (r: ReceiptData) => {
-    setCart([]);
-    clearPersistentState(PDV_CART_KEY);
+    setCarts((prev) => {
+      const next = { ...prev };
+      delete next[activeTable];
+      return next;
+    });
     setOpenCheckout(false);
+    setOpenCart(false);
     setReceipt(r);
     setOpenReceipt(true);
-    toast.success("Venda registrada com sucesso!");
+    toast.success(`Venda registrada (${tableLabel(activeTable)})`);
+    if (activeTable !== 0) setActiveTable(0);
   };
 
   return (
-    <AppShell title="PDV — Nova venda">
-      <div className="sticky top-[64px] z-20 -mx-4 bg-background/95 backdrop-blur px-4 pb-2 pt-1">
-        <div className="relative mb-2">
+    <AppShell title={`PDV — ${tableLabel(activeTable)}`}>
+      <div className="sticky top-[64px] z-20 -mx-4 bg-background/95 backdrop-blur px-4 pb-2 pt-1 space-y-2">
+        {/* Table selector */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+          <TableChip
+            label="Balcão"
+            icon={<Store className="h-3 w-3" />}
+            count={(carts[0] ?? []).reduce((s, x) => s + x.qty, 0)}
+            active={activeTable === 0}
+            onClick={() => setActiveTable(0)}
+          />
+          {Array.from({ length: TABLE_COUNT }, (_, i) => i + 1).map((n) => (
+            <TableChip
+              key={n}
+              label={`Mesa ${n}`}
+              icon={<Utensils className="h-3 w-3" />}
+              count={(carts[n] ?? []).reduce((s, x) => s + x.qty, 0)}
+              active={activeTable === n}
+              onClick={() => setActiveTable(n)}
+            />
+          ))}
+        </div>
+
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar produto..."
@@ -143,7 +185,7 @@ export default function PDV() {
       </div>
 
       {/* Floating cart */}
-      <Sheet>
+      <Sheet open={openCart} onOpenChange={setOpenCart}>
         <SheetTrigger asChild>
           <button
             disabled={cart.length === 0}
@@ -159,7 +201,10 @@ export default function PDV() {
         </SheetTrigger>
         <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle className="font-display text-2xl text-left">Carrinho</SheetTitle>
+            <SheetTitle className="font-display text-2xl text-left flex items-center gap-2">
+              {activeTable === 0 ? <Store className="h-5 w-5" /> : <Utensils className="h-5 w-5" />}
+              {tableLabel(activeTable)}
+            </SheetTitle>
           </SheetHeader>
           <div className="mt-3 space-y-2">
             {cart.map((it) => (
@@ -192,14 +237,30 @@ export default function PDV() {
           <Button className="w-full mt-3 h-12 font-display text-lg" onClick={() => setOpenCheckout(true)} disabled={!user}>
             Receber Pagamento
           </Button>
+          {activeTable !== 0 && (
+            <Button
+              variant="outline"
+              className="w-full mt-2"
+              onClick={() => {
+                setOpenCart(false);
+                toast.info(`${tableLabel(activeTable)} estacionada — pode iniciar nova venda`);
+                setActiveTable(0);
+              }}
+            >
+              Estacionar pedido e abrir Balcão
+            </Button>
+          )}
           <Button
             variant="outline"
             className="w-full mt-2 text-destructive"
             onClick={() => {
-              if (!confirm("Limpar carrinho atual?")) return;
-              setCart([]);
-              clearPersistentState(PDV_CART_KEY);
-              toast.success("Carrinho apagado");
+              if (!confirm(`Limpar ${tableLabel(activeTable)}?`)) return;
+              setCarts((prev) => {
+                const next = { ...prev };
+                delete next[activeTable];
+                return next;
+              });
+              toast.success("Pedido apagado");
             }}
           >
             <Trash2 className="h-4 w-4 mr-1" /> Limpar dados do pedido
@@ -231,5 +292,32 @@ const CatChip = ({ label, active, onClick }: { label: string; active: boolean; o
     )}
   >
     {label}
+  </button>
+);
+
+const TableChip = ({
+  label, icon, count, active, onClick,
+}: { label: string; icon: React.ReactNode; count: number; active: boolean; onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className={cn(
+      "relative shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-display tracking-wide transition flex items-center gap-1.5",
+      active
+        ? "bg-primary text-primary-foreground border-primary shadow-card-retro"
+        : count > 0
+          ? "bg-accent/30 text-foreground border-accent"
+          : "bg-card text-muted-foreground border-border"
+    )}
+  >
+    {icon}
+    {label}
+    {count > 0 && (
+      <span className={cn(
+        "ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold",
+        active ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
+      )}>
+        {count}
+      </span>
+    )}
   </button>
 );
