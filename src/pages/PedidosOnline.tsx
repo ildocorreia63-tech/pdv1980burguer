@@ -113,6 +113,52 @@ export default function PedidosOnline() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  const loadPdvSales = async (startIso: string, endIso: string) => {
+    const { data: sales } = await supabase
+      .from("sales")
+      .select("id, created_at, total, paid_amount, status, notes")
+      .gte("created_at", startIso)
+      .lte("created_at", endIso)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    const filtered = (sales ?? []).filter((s: any) => !(s.notes ?? "").startsWith("Pedido online"));
+    if (filtered.length === 0) { setPdvSales([]); return; }
+    const { data: items } = await supabase
+      .from("sale_items")
+      .select("sale_id, product_name, quantity, subtotal")
+      .in("sale_id", filtered.map((s: any) => s.id));
+    const byId = new Map<string, PdvSale["items"]>();
+    (items ?? []).forEach((it: any) => {
+      const arr = byId.get(it.sale_id) ?? [];
+      arr.push({ product_name: it.product_name, quantity: Number(it.quantity), subtotal: Number(it.subtotal) });
+      byId.set(it.sale_id, arr);
+    });
+    setPdvSales(filtered.map((s: any) => ({
+      ...s, total: Number(s.total), paid_amount: Number(s.paid_amount),
+      items: byId.get(s.id) ?? [],
+    })));
+  };
+
+  const cleanStuck = async () => {
+    const stuck = orders.filter((o) =>
+      (o.status === "pending" || o.status === "pending_payment") &&
+      Date.now() - new Date(o.created_at).getTime() > 30 * 60 * 1000
+    );
+    if (stuck.length === 0) return toast.info("Nenhum pedido parado há mais de 30 min");
+    if (!confirm(`Recusar ${stuck.length} pedido(s) parado(s) há mais de 30 min?`)) return;
+    setCleaning(true);
+    const { error } = await supabase
+      .from("online_orders")
+      .update({ status: "rejected" })
+      .in("id", stuck.map((o) => o.id));
+    setCleaning(false);
+    if (error) return toast.error(error.message);
+    toast.success(`${stuck.length} pedido(s) limpo(s)`);
+    load();
+  };
+
+
   const accept = async (o: Order) => {
     if (!user) return;
     if (!o.items || o.items.length === 0) return toast.error("Pedido sem itens");
