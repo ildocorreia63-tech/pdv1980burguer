@@ -249,6 +249,15 @@ export default function PedidosOnline() {
     return { startMs: start.getTime(), endMs: end.getTime() };
   }, [period, range]);
 
+  useEffect(() => {
+    if (source === "pdv") {
+      const startIso = new Date(startMs).toISOString();
+      const endIso = new Date(Math.min(endMs, Date.now() + 86400000)).toISOString();
+      loadPdvSales(startIso, endIso);
+    }
+  }, [source, startMs, endMs]);
+
+
   const inPeriod = (o: Order) => {
     const t = new Date(o.created_at).getTime();
     return t >= startMs && t <= endMs;
