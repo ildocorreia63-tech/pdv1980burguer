@@ -283,7 +283,20 @@ export default function PedidosOnline() {
   ];
 
   return (
-    <AppShell title="Pedidos Online">
+    <AppShell title="Pedidos">
+      <div className="mb-3 inline-flex w-full rounded-lg border border-border bg-card p-1 shadow-sm">
+        <button
+          onClick={() => setSource("online")}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition ${source === "online" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          <Globe className="h-3.5 w-3.5" /> Online
+        </button>
+        <button
+          onClick={() => setSource("pdv")}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition ${source === "pdv" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          <ShoppingBag className="h-3.5 w-3.5" /> PDV
+        </button>
+      </div>
+
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <div className="inline-flex rounded-lg border border-border bg-card p-1 shadow-sm">
           {(["today", "7d", "30d", "all"] as Period[]).map((p) => (
@@ -309,7 +322,57 @@ export default function PedidosOnline() {
               numberOfMonths={1} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
           </PopoverContent>
         </Popover>
+        {source === "online" && (
+          <Button variant="outline" size="sm" className="h-8 text-xs ml-auto text-destructive" onClick={cleanStuck} disabled={cleaning}>
+            <Trash2 className="h-3.5 w-3.5" /> Limpar parados
+          </Button>
+        )}
       </div>
+
+      {source === "pdv" ? (
+        <>
+          <p className="mb-2 text-[11px] text-muted-foreground flex justify-between">
+            <span>{pdvSales.length} vendas no PDV</span>
+            <span className="font-semibold text-primary">{formatBRL(pdvSales.reduce((s, v) => s + v.total, 0))}</span>
+          </p>
+          <div className="space-y-3">
+            {pdvSales.map((s) => (
+              <Card key={s.id} className="p-4 shadow-card-retro">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-display text-base text-primary flex items-center gap-1.5">
+                      <ShoppingBag className="h-4 w-4" /> Venda PDV
+                    </h3>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Clock className="h-3 w-3" /> {formatDate(s.created_at)}
+                    </p>
+                  </div>
+                  <Badge variant={s.status === "closed" ? "default" : "outline"} className="shrink-0">
+                    {s.status === "closed" ? "Pago" : s.status === "open" ? "Em aberto" : s.status}
+                  </Badge>
+                </div>
+                <div className="mt-2 space-y-1">
+                  {s.items.map((it, i) => (
+                    <div key={i} className="flex justify-between text-sm">
+                      <span>{it.quantity}x {it.product_name}</span>
+                      <span>{formatBRL(it.subtotal)}</span>
+                    </div>
+                  ))}
+                </div>
+                {s.notes && <p className="mt-2 text-xs italic text-muted-foreground">Obs: {s.notes}</p>}
+                <div className="mt-2 flex justify-between items-center border-t border-border pt-2">
+                  <span className="font-display text-sm">Total</span>
+                  <span className="font-display text-lg text-primary">{formatBRL(s.total)}</span>
+                </div>
+              </Card>
+            ))}
+            {pdvSales.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground py-8">Nenhuma venda no PDV no período.</p>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
       <p className="mb-2 text-[11px] text-muted-foreground flex justify-between">
         <span>{visible.length} pedidos</span>
         <span className="font-semibold text-primary">{formatBRL(periodTotal)}</span>
@@ -334,6 +397,7 @@ export default function PedidosOnline() {
 
       <div className="space-y-3">
         {visible.map((o) => (
+
           <Card key={o.id} className="p-4 shadow-card-retro">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
