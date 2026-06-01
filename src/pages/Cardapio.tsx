@@ -25,7 +25,7 @@ type Product = { id: string; name: string; price: number; description: string | 
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
 type CartItem = { product: Product; qty: number; unavailable?: boolean };
-type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; pix_key: string | null; pix_receiver_name: string | null; pix_city: string | null; business_hours: BusinessHours | null };
+type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; business_hours: BusinessHours | null };
 
 export default function Cardapio() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -105,11 +105,11 @@ export default function Cardapio() {
       const [c, z, s] = await Promise.all([
         supabase.from("categories").select("id,name").order("sort_order"),
         supabase.from("delivery_zones").select("id,name,fee").eq("active", true).order("sort_order"),
-        supabase.from("store_settings").select("store_name,whatsapp_number,welcome_message,menu_open,pix_key,pix_receiver_name,pix_city,business_hours").maybeSingle(),
+        supabase.from("public_store_settings" as any).select("store_name,whatsapp_number,welcome_message,menu_open,business_hours").maybeSingle(),
       ]);
       setCats(c.data ?? []);
       setZones((z.data ?? []).map((x) => ({ ...x, fee: Number(x.fee) })));
-      setSettings(s.data as Settings | null);
+      setSettings(s.data as unknown as Settings | null);
     })();
     loadProducts();
 
