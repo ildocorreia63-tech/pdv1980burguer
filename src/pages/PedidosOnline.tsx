@@ -64,6 +64,11 @@ export default function PedidosOnline() {
   const [period, setPeriod] = useState<Period>("30d");
   const [range, setRange] = useState<DateRange | undefined>();
   const [loading, setLoading] = useState(true);
+  const [source, setSource] = useState<"online" | "pdv">("online");
+  type PdvSale = { id: string; created_at: string; total: number; paid_amount: number; status: string; notes: string | null; operator_name?: string; items: { product_name: string; quantity: number; subtotal: number }[] };
+  const [pdvSales, setPdvSales] = useState<PdvSale[]>([]);
+  const [cleaning, setCleaning] = useState(false);
+
 
 
   const load = async () => {
