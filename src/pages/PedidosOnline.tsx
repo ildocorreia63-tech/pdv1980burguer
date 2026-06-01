@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatBRL, formatDate } from "@/lib/format";
-import { Check, X, MapPin, Store, Phone, Clock, MessageCircle, CalendarIcon } from "lucide-react";
+import { Check, X, MapPin, Store, Phone, Clock, MessageCircle, CalendarIcon, Trash2, ShoppingBag, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
