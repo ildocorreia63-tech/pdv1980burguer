@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatBRL, formatDate } from "@/lib/format";
-import { Check, X, MapPin, Store, Phone, Clock, MessageCircle, CalendarIcon } from "lucide-react";
+import { Check, X, MapPin, Store, Phone, Clock, MessageCircle, CalendarIcon, Trash2, ShoppingBag, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -64,6 +64,11 @@ export default function PedidosOnline() {
   const [period, setPeriod] = useState<Period>("30d");
   const [range, setRange] = useState<DateRange | undefined>();
   const [loading, setLoading] = useState(true);
+  const [source, setSource] = useState<"online" | "pdv">("online");
+  type PdvSale = { id: string; created_at: string; total: number; paid_amount: number; status: string; notes: string | null; operator_name?: string; items: { product_name: string; quantity: number; subtotal: number }[] };
+  const [pdvSales, setPdvSales] = useState<PdvSale[]>([]);
+  const [cleaning, setCleaning] = useState(false);
+
 
 
   const load = async () => {
@@ -107,6 +112,52 @@ export default function PedidosOnline() {
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  const loadPdvSales = async (startIso: string, endIso: string) => {
+    const { data: sales } = await supabase
+      .from("sales")
+      .select("id, created_at, total, paid_amount, status, notes")
+      .gte("created_at", startIso)
+      .lte("created_at", endIso)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    const filtered = (sales ?? []).filter((s: any) => !(s.notes ?? "").startsWith("Pedido online"));
+    if (filtered.length === 0) { setPdvSales([]); return; }
+    const { data: items } = await supabase
+      .from("sale_items")
+      .select("sale_id, product_name, quantity, subtotal")
+      .in("sale_id", filtered.map((s: any) => s.id));
+    const byId = new Map<string, PdvSale["items"]>();
+    (items ?? []).forEach((it: any) => {
+      const arr = byId.get(it.sale_id) ?? [];
+      arr.push({ product_name: it.product_name, quantity: Number(it.quantity), subtotal: Number(it.subtotal) });
+      byId.set(it.sale_id, arr);
+    });
+    setPdvSales(filtered.map((s: any) => ({
+      ...s, total: Number(s.total), paid_amount: Number(s.paid_amount),
+      items: byId.get(s.id) ?? [],
+    })));
+  };
+
+  const cleanStuck = async () => {
+    const stuck = orders.filter((o) =>
+      (o.status === "pending" || o.status === "pending_payment") &&
+      Date.now() - new Date(o.created_at).getTime() > 30 * 60 * 1000
+    );
+    if (stuck.length === 0) return toast.info("Nenhum pedido parado há mais de 30 min");
+    if (!confirm(`Recusar ${stuck.length} pedido(s) parado(s) há mais de 30 min?`)) return;
+    setCleaning(true);
+    const { error } = await supabase
+      .from("online_orders")
+      .update({ status: "rejected" })
+      .in("id", stuck.map((o) => o.id));
+    setCleaning(false);
+    if (error) return toast.error(error.message);
+    toast.success(`${stuck.length} pedido(s) limpo(s)`);
+    load();
+  };
+
 
   const accept = async (o: Order) => {
     if (!user) return;
@@ -198,6 +249,15 @@ export default function PedidosOnline() {
     return { startMs: start.getTime(), endMs: end.getTime() };
   }, [period, range]);
 
+  useEffect(() => {
+    if (source === "pdv") {
+      const startIso = new Date(startMs).toISOString();
+      const endIso = new Date(Math.min(endMs, Date.now() + 86400000)).toISOString();
+      loadPdvSales(startIso, endIso);
+    }
+  }, [source, startMs, endMs]);
+
+
   const inPeriod = (o: Order) => {
     const t = new Date(o.created_at).getTime();
     return t >= startMs && t <= endMs;
@@ -223,7 +283,20 @@ export default function PedidosOnline() {
   ];
 
   return (
-    <AppShell title="Pedidos Online">
+    <AppShell title="Pedidos">
+      <div className="mb-3 inline-flex w-full rounded-lg border border-border bg-card p-1 shadow-sm">
+        <button
+          onClick={() => setSource("online")}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition ${source === "online" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          <Globe className="h-3.5 w-3.5" /> Online
+        </button>
+        <button
+          onClick={() => setSource("pdv")}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition ${source === "pdv" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          <ShoppingBag className="h-3.5 w-3.5" /> PDV
+        </button>
+      </div>
+
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <div className="inline-flex rounded-lg border border-border bg-card p-1 shadow-sm">
           {(["today", "7d", "30d", "all"] as Period[]).map((p) => (
@@ -249,7 +322,57 @@ export default function PedidosOnline() {
               numberOfMonths={1} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
           </PopoverContent>
         </Popover>
+        {source === "online" && (
+          <Button variant="outline" size="sm" className="h-8 text-xs ml-auto text-destructive" onClick={cleanStuck} disabled={cleaning}>
+            <Trash2 className="h-3.5 w-3.5" /> Limpar parados
+          </Button>
+        )}
       </div>
+
+      {source === "pdv" ? (
+        <>
+          <p className="mb-2 text-[11px] text-muted-foreground flex justify-between">
+            <span>{pdvSales.length} vendas no PDV</span>
+            <span className="font-semibold text-primary">{formatBRL(pdvSales.reduce((s, v) => s + v.total, 0))}</span>
+          </p>
+          <div className="space-y-3">
+            {pdvSales.map((s) => (
+              <Card key={s.id} className="p-4 shadow-card-retro">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-display text-base text-primary flex items-center gap-1.5">
+                      <ShoppingBag className="h-4 w-4" /> Venda PDV
+                    </h3>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Clock className="h-3 w-3" /> {formatDate(s.created_at)}
+                    </p>
+                  </div>
+                  <Badge variant={s.status === "closed" ? "default" : "outline"} className="shrink-0">
+                    {s.status === "closed" ? "Pago" : s.status === "open" ? "Em aberto" : s.status}
+                  </Badge>
+                </div>
+                <div className="mt-2 space-y-1">
+                  {s.items.map((it, i) => (
+                    <div key={i} className="flex justify-between text-sm">
+                      <span>{it.quantity}x {it.product_name}</span>
+                      <span>{formatBRL(it.subtotal)}</span>
+                    </div>
+                  ))}
+                </div>
+                {s.notes && <p className="mt-2 text-xs italic text-muted-foreground">Obs: {s.notes}</p>}
+                <div className="mt-2 flex justify-between items-center border-t border-border pt-2">
+                  <span className="font-display text-sm">Total</span>
+                  <span className="font-display text-lg text-primary">{formatBRL(s.total)}</span>
+                </div>
+              </Card>
+            ))}
+            {pdvSales.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground py-8">Nenhuma venda no PDV no período.</p>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
       <p className="mb-2 text-[11px] text-muted-foreground flex justify-between">
         <span>{visible.length} pedidos</span>
         <span className="font-semibold text-primary">{formatBRL(periodTotal)}</span>
@@ -274,6 +397,7 @@ export default function PedidosOnline() {
 
       <div className="space-y-3">
         {visible.map((o) => (
+
           <Card key={o.id} className="p-4 shadow-card-retro">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -363,6 +487,8 @@ export default function PedidosOnline() {
           </p>
         )}
       </div>
+        </>
+      )}
     </AppShell>
   );
 }
