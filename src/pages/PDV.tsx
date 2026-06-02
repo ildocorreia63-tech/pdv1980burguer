@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Minus, Trash2, ShoppingCart, Search, ImageIcon, Utensils, Store } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingCart, Search, ImageIcon, Utensils, Store, RotateCcw } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
