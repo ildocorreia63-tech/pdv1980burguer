@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Minus, Trash2, ShoppingCart, Search, ImageIcon, Utensils, Store } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingCart, Search, ImageIcon, Utensils, Store, RotateCcw } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -157,6 +157,42 @@ export default function PDV() {
           ))}
         </div>
       </div>
+
+      {/* Pedidos estacionados */}
+      {activeTable === 0 && (
+        <div className="mt-3 space-y-2">
+          {Array.from({ length: TABLE_COUNT }, (_, i) => i + 1)
+            .filter((n) => (carts[n] ?? []).length > 0)
+            .map((n) => {
+              const items = carts[n] ?? [];
+              const total = items.reduce((s, x) => s + x.product.price * x.qty, 0);
+              return (
+                <Card key={n} className="p-3 flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent">
+                    <Utensils className="h-5 w-5 text-accent-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display text-base leading-tight">{tableLabel(n)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {items.length} item{items.length > 1 ? "s" : ""} · {formatBRL(total)}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0"
+                    onClick={() => {
+                      setActiveTable(n);
+                      toast.info(`Reaberto ${tableLabel(n)}`);
+                    }}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-1" /> Reabrir
+                  </Button>
+                </Card>
+              );
+            })}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 mt-3">
         {filtered.map((p) => (
