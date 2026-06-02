@@ -188,6 +188,22 @@ export default function PDV() {
                   >
                     <RotateCcw className="h-4 w-4 mr-1" /> Reabrir
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="shrink-0 text-destructive"
+                    onClick={() => {
+                      if (!confirm(`Cancelar definitivamente o pedido da ${tableLabel(n)}?`)) return;
+                      setCarts((prev) => {
+                        const next = { ...prev };
+                        delete next[n];
+                        return next;
+                      });
+                      toast.success(`${tableLabel(n)} cancelada`);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </Card>
               );
             })}
