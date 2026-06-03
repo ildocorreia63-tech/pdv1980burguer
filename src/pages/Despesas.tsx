@@ -11,19 +11,20 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Trash2, CalendarIcon, X } from "lucide-react";
+import { Plus, Trash2, CalendarIcon, X, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
+import { usePersistentState } from "@/hooks/usePersistentState";
 
 type Period = "today" | "7d" | "30d" | "all" | "custom";
 const periodLabel: Record<Period, string> = { today: "Hoje", "7d": "7d", "30d": "30d", all: "Tudo", custom: "Período" };
 
 type Expense = { id: string; description: string; category: string | null; amount: number; expense_date: string; notes: string | null };
 
-const COMMON = ["Insumos", "Embalagens", "Aluguel", "Energia", "Água", "Internet", "Funcionários", "Marketing", "Outros"];
+const DEFAULT_CATEGORIES = ["Insumos", "Embalagens", "Aluguel", "Energia", "Água", "Internet", "Funcionários", "Marketing", "Outros"];
 
 export default function Despesas() {
   const { user, isAdmin } = useAuth();
