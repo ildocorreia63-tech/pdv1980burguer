@@ -185,7 +185,7 @@ export default function Relatorios() {
 </tbody></table>
 <h2>Formas de pagamento</h2>
 <table><thead><tr><th>Método</th><th class="r">Total</th></tr></thead><tbody>
-  ${data.byMethod.map((m) => `<tr><td>${paymentLabels[m.method] ?? m.method}</td><td class="r">${formatBRL(m.total)}</td></tr>`).join("") || `<tr><td colspan="2" style="color:#999">Sem pagamentos</td></tr>`}
+  ${data.byMethod.map((m) => `<tr><td>${esc(paymentLabels[m.method] ?? m.method)}</td><td class="r">${formatBRL(m.total)}</td></tr>`).join("") || `<tr><td colspan="2" style="color:#999">Sem pagamentos</td></tr>`}
 </tbody></table>
 <h2>Despesas por categoria</h2>
 <table><thead><tr><th>Categoria</th><th class="r">Lançamentos</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>
