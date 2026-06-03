@@ -194,7 +194,7 @@ export default function Relatorios() {
 </tbody></table>
 <h2>Top produtos</h2>
 <table><thead><tr><th>#</th><th>Produto</th><th class="r">Qtd</th><th class="r">Total</th></tr></thead><tbody>
-  ${data.topProducts.map((p, i) => `<tr><td>${i + 1}</td><td>${p.name}</td><td class="r">${p.qty}</td><td class="r">${formatBRL(p.total)}</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">Sem vendas</td></tr>`}
+  ${data.topProducts.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.name)}</td><td class="r">${p.qty}</td><td class="r">${formatBRL(p.total)}</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">Sem vendas</td></tr>`}
 </tbody></table>
 <div class="noprint" style="margin-top:24px;text-align:center">
   <button onclick="window.print()" style="padding:10px 20px;font-size:14px;border:1px solid #111;background:#111;color:#fff;border-radius:8px;cursor:pointer">Imprimir / Salvar PDF</button>
