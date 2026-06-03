@@ -81,18 +81,25 @@ export const shareReceipt = async (text: string) => {
 };
 
 export const printReceipt = (r: ReceiptData) => {
+  const esc = (s: unknown) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   const w = window.open("", "_blank", "width=380,height=600");
   if (!w) return;
   const itemsHtml = r.items
     .map(
       (it) =>
-        `<tr><td>${it.qty}x ${it.name}</td><td style="text-align:right">${formatBRL(it.subtotal)}</td></tr>`
+        `<tr><td>${it.qty}x ${esc(it.name)}</td><td style="text-align:right">${formatBRL(it.subtotal)}</td></tr>`
     )
     .join("");
   const paysHtml = r.payments
     .map(
       (p) =>
-        `<div>${paymentLabels[p.method] ?? p.method}${p.status === "pending" ? " (FIADO)" : ""}: <strong>${formatBRL(p.amount)}</strong></div>`
+        `<div>${esc(paymentLabels[p.method] ?? p.method)}${p.status === "pending" ? " (FIADO)" : ""}: <strong>${formatBRL(p.amount)}</strong></div>`
     )
     .join("");
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Comprovante #${r.saleId.slice(0, 8)}</title>
