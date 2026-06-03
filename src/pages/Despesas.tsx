@@ -28,10 +28,13 @@ const DEFAULT_CATEGORIES = ["Insumos", "Embalagens", "Aluguel", "Energia", "Águ
 
 export default function Despesas() {
   const { user, isAdmin } = useAuth();
+  const [categories, setCategories] = usePersistentState<string[]>("expense-categories", DEFAULT_CATEGORIES);
   const [list, setList] = useState<Expense[]>([]);
   const [open, setOpen] = useState(false);
+  const [catOpen, setCatOpen] = useState(false);
+  const [newCat, setNewCat] = useState("");
   const [desc, setDesc] = useState("");
-  const [cat, setCat] = useState("Insumos");
+  const [cat, setCat] = useState(categories[0] ?? "Outros");
   const [amount, setAmount] = useState(0);
   const localToday = () => {
     const d = new Date();
