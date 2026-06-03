@@ -121,27 +121,95 @@ export default function Despesas() {
     <AppShell
       title="Despesas"
       action={
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button size="icon" variant="outline"><Plus className="h-4 w-4" /></Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Nova despesa</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div><Label>Descrição</Label><Input value={desc} onChange={(e) => setDesc(e.target.value)} /></div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label>Categoria</Label>
-                  <select value={cat} onChange={(e) => setCat(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-2 text-sm">
-                    {COMMON.map((c) => <option key={c}>{c}</option>)}
-                  </select>
+        <div className="flex gap-2">
+          <Dialog open={catOpen} onOpenChange={setCatOpen}>
+            <DialogTrigger asChild>
+              <Button size="icon" variant="outline" title="Gerenciar categorias"><Tag className="h-4 w-4" /></Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Categorias de despesas</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nova categoria"
+                    value={newCat}
+                    onChange={(e) => setNewCat(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const v = newCat.trim();
+                        if (!v) return;
+                        if (categories.some((c) => c.toLowerCase() === v.toLowerCase())) {
+                          return toast.error("Categoria já existe");
+                        }
+                        setCategories([...categories, v]);
+                        setNewCat("");
+                        toast.success("Categoria adicionada");
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={() => {
+                      const v = newCat.trim();
+                      if (!v) return;
+                      if (categories.some((c) => c.toLowerCase() === v.toLowerCase())) {
+                        return toast.error("Categoria já existe");
+                      }
+                      setCategories([...categories, v]);
+                      setNewCat("");
+                      toast.success("Categoria adicionada");
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
                 </div>
-                <div><Label>Data</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+                <div className="space-y-1 max-h-72 overflow-auto">
+                  {categories.map((c) => (
+                    <div key={c} className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
+                      <span>{c}</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-destructive"
+                        onClick={() => {
+                          if (!confirm(`Excluir categoria "${c}"?`)) return;
+                          const next = categories.filter((x) => x !== c);
+                          setCategories(next);
+                          if (cat === c) setCat(next[0] ?? "Outros");
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {categories.length === 0 && (
+                    <p className="text-center text-xs text-muted-foreground py-4">Nenhuma categoria.</p>
+                  )}
+                </div>
               </div>
-              <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={amount || ""} onChange={(e) => setAmount(Number(e.target.value) || 0)} /></div>
-              <div><Label>Observação</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
-              <Button className="w-full" onClick={save}>Salvar</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild><Button size="icon" variant="outline"><Plus className="h-4 w-4" /></Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Nova despesa</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div><Label>Descrição</Label><Input value={desc} onChange={(e) => setDesc(e.target.value)} /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>Categoria</Label>
+                    <select value={cat} onChange={(e) => setCat(e.target.value)} className="w-full h-10 rounded-md border border-input bg-background px-2 text-sm">
+                      {categories.map((c) => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div><Label>Data</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+                </div>
+                <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={amount || ""} onChange={(e) => setAmount(Number(e.target.value) || 0)} /></div>
+                <div><Label>Observação</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+                <Button className="w-full" onClick={save}>Salvar</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       }
     >
       <div className="grid grid-cols-2 gap-3 mb-3">
