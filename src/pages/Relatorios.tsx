@@ -189,7 +189,7 @@ export default function Relatorios() {
 </tbody></table>
 <h2>Despesas por categoria</h2>
 <table><thead><tr><th>Categoria</th><th class="r">Lançamentos</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>
-  ${data.byCategory.map((c) => `<tr><td>${c.category}</td><td class="r">${c.count}</td><td class="r">${formatBRL(c.total)}</td><td class="r">${c.pct.toFixed(1)}%</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">Sem despesas</td></tr>`}
+  ${data.byCategory.map((c) => `<tr><td>${esc(c.category)}</td><td class="r">${c.count}</td><td class="r">${formatBRL(c.total)}</td><td class="r">${c.pct.toFixed(1)}%</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">Sem despesas</td></tr>`}
   <tr><th>Total</th><th class="r"></th><th class="r">${formatBRL(data.expenses)}</th><th class="r">100%</th></tr>
 </tbody></table>
 <h2>Top produtos</h2>
