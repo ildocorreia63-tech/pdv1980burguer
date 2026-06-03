@@ -32,6 +32,25 @@ Deno.serve(async (req) => {
       .single();
     if (error || !order) return json({ error: "Pedido não encontrado" }, 404);
 
+    // Only allow PIX charge creation for fresh, pending orders that opted into PIX
+    // and don't already have a charge. Prevents anonymous abuse via guessed order IDs.
+    const createdMs = new Date(order.created_at).getTime();
+    const ageMin = (Date.now() - createdMs) / 60000;
+    const allowedStatus = order.status === "pending" || order.status === "pending_payment";
+    if (
+      !allowedStatus ||
+      order.payment_method !== "pix" ||
+      order.payment_confirmed_at ||
+      order.sale_id ||
+      ageMin > 15
+    ) {
+      if (order.asaas_payment_id && order.asaas_invoice_url) {
+        // fall through to QR refetch below
+      } else {
+        return json({ error: "Pedido não elegível para cobrança PIX" }, 403);
+      }
+    }
+
     if (order.asaas_payment_id && order.asaas_invoice_url) {
       // Already created — re-fetch QR
       const qr = await fetchPixQr(order.asaas_payment_id, apiKey);
