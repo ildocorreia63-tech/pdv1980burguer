@@ -11,7 +11,8 @@ Deno.serve(async (req) => {
   try {
     const expectedToken = Deno.env.get("ASAAS_WEBHOOK_TOKEN");
     const got = req.headers.get("asaas-access-token") || new URL(req.url).searchParams.get("token");
-    if (expectedToken && got !== expectedToken) {
+    if (!expectedToken || got !== expectedToken) {
+      console.warn("Asaas webhook rejected: missing or invalid token");
       return new Response("unauthorized", { status: 401, headers: corsHeaders });
     }
 
