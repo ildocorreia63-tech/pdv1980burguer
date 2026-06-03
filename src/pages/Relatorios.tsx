@@ -105,6 +105,13 @@ export default function Relatorios() {
   const total = data.salesPaid + data.creditReceived;
   const profit = total - data.expenses;
   const periodStr = `${format(startDate, "dd/MM/yyyy", { locale: ptBR })} a ${format(endDate, "dd/MM/yyyy", { locale: ptBR })}`;
+  const esc = (s: unknown) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
 
   const downloadCSV = () => {
     const lines: string[] = [];
