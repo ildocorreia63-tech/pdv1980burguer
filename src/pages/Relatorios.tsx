@@ -105,6 +105,13 @@ export default function Relatorios() {
   const total = data.salesPaid + data.creditReceived;
   const profit = total - data.expenses;
   const periodStr = `${format(startDate, "dd/MM/yyyy", { locale: ptBR })} a ${format(endDate, "dd/MM/yyyy", { locale: ptBR })}`;
+  const esc = (s: unknown) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
 
   const downloadCSV = () => {
     const lines: string[] = [];
@@ -178,16 +185,16 @@ export default function Relatorios() {
 </tbody></table>
 <h2>Formas de pagamento</h2>
 <table><thead><tr><th>Método</th><th class="r">Total</th></tr></thead><tbody>
-  ${data.byMethod.map((m) => `<tr><td>${paymentLabels[m.method] ?? m.method}</td><td class="r">${formatBRL(m.total)}</td></tr>`).join("") || `<tr><td colspan="2" style="color:#999">Sem pagamentos</td></tr>`}
+  ${data.byMethod.map((m) => `<tr><td>${esc(paymentLabels[m.method] ?? m.method)}</td><td class="r">${formatBRL(m.total)}</td></tr>`).join("") || `<tr><td colspan="2" style="color:#999">Sem pagamentos</td></tr>`}
 </tbody></table>
 <h2>Despesas por categoria</h2>
 <table><thead><tr><th>Categoria</th><th class="r">Lançamentos</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>
-  ${data.byCategory.map((c) => `<tr><td>${c.category}</td><td class="r">${c.count}</td><td class="r">${formatBRL(c.total)}</td><td class="r">${c.pct.toFixed(1)}%</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">Sem despesas</td></tr>`}
+  ${data.byCategory.map((c) => `<tr><td>${esc(c.category)}</td><td class="r">${c.count}</td><td class="r">${formatBRL(c.total)}</td><td class="r">${c.pct.toFixed(1)}%</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">Sem despesas</td></tr>`}
   <tr><th>Total</th><th class="r"></th><th class="r">${formatBRL(data.expenses)}</th><th class="r">100%</th></tr>
 </tbody></table>
 <h2>Top produtos</h2>
 <table><thead><tr><th>#</th><th>Produto</th><th class="r">Qtd</th><th class="r">Total</th></tr></thead><tbody>
-  ${data.topProducts.map((p, i) => `<tr><td>${i + 1}</td><td>${p.name}</td><td class="r">${p.qty}</td><td class="r">${formatBRL(p.total)}</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">Sem vendas</td></tr>`}
+  ${data.topProducts.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.name)}</td><td class="r">${p.qty}</td><td class="r">${formatBRL(p.total)}</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">Sem vendas</td></tr>`}
 </tbody></table>
 <div class="noprint" style="margin-top:24px;text-align:center">
   <button onclick="window.print()" style="padding:10px 20px;font-size:14px;border:1px solid #111;background:#111;color:#fff;border-radius:8px;cursor:pointer">Imprimir / Salvar PDF</button>
@@ -213,9 +220,9 @@ export default function Relatorios() {
   <div><span>Ticket médio</span><b>${formatBRL(data.avgTicket)}</b></div>
 </div>
 <h2>Recebimentos</h2><table><tr><td>Vendas</td><td class="r">${formatBRL(data.salesPaid)}</td></tr><tr><td>Fiado recebido</td><td class="r">${formatBRL(data.creditReceived)}</td></tr></table>
-<h2>Formas de pagamento</h2><table><thead><tr><th>Método</th><th class="r">Total</th></tr></thead><tbody>${data.byMethod.map((m) => `<tr><td>${paymentLabels[m.method] ?? m.method}</td><td class="r">${formatBRL(m.total)}</td></tr>`).join("") || `<tr><td colspan="2" style="color:#999">—</td></tr>`}</tbody></table>
-<h2>Despesas por categoria</h2><table><thead><tr><th>Categoria</th><th class="r">Lanç.</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>${data.byCategory.map((c) => `<tr><td>${c.category}</td><td class="r">${c.count}</td><td class="r">${formatBRL(c.total)}</td><td class="r">${c.pct.toFixed(1)}%</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">—</td></tr>`}<tr><th>Total</th><th></th><th class="r">${formatBRL(data.expenses)}</th><th class="r">100%</th></tr></tbody></table>
-<h2>Top produtos</h2><table><thead><tr><th>#</th><th>Produto</th><th class="r">Qtd</th><th class="r">Total</th></tr></thead><tbody>${data.topProducts.map((p, i) => `<tr><td>${i + 1}</td><td>${p.name}</td><td class="r">${p.qty}</td><td class="r">${formatBRL(p.total)}</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">—</td></tr>`}</tbody></table>
+<h2>Formas de pagamento</h2><table><thead><tr><th>Método</th><th class="r">Total</th></tr></thead><tbody>${data.byMethod.map((m) => `<tr><td>${esc(paymentLabels[m.method] ?? m.method)}</td><td class="r">${formatBRL(m.total)}</td></tr>`).join("") || `<tr><td colspan="2" style="color:#999">—</td></tr>`}</tbody></table>
+<h2>Despesas por categoria</h2><table><thead><tr><th>Categoria</th><th class="r">Lanç.</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>${data.byCategory.map((c) => `<tr><td>${esc(c.category)}</td><td class="r">${c.count}</td><td class="r">${formatBRL(c.total)}</td><td class="r">${c.pct.toFixed(1)}%</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">—</td></tr>`}<tr><th>Total</th><th></th><th class="r">${formatBRL(data.expenses)}</th><th class="r">100%</th></tr></tbody></table>
+<h2>Top produtos</h2><table><thead><tr><th>#</th><th>Produto</th><th class="r">Qtd</th><th class="r">Total</th></tr></thead><tbody>${data.topProducts.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.name)}</td><td class="r">${p.qty}</td><td class="r">${formatBRL(p.total)}</td></tr>`).join("") || `<tr><td colspan="4" style="color:#999">—</td></tr>`}</tbody></table>
 <script>window.onload=()=>setTimeout(()=>window.print(),300)</script>
 </body></html>`;
     const w = window.open("", "_blank");

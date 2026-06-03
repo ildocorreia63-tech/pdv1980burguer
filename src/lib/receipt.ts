@@ -81,18 +81,25 @@ export const shareReceipt = async (text: string) => {
 };
 
 export const printReceipt = (r: ReceiptData) => {
+  const esc = (s: unknown) =>
+    String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   const w = window.open("", "_blank", "width=380,height=600");
   if (!w) return;
   const itemsHtml = r.items
     .map(
       (it) =>
-        `<tr><td>${it.qty}x ${it.name}</td><td style="text-align:right">${formatBRL(it.subtotal)}</td></tr>`
+        `<tr><td>${it.qty}x ${esc(it.name)}</td><td style="text-align:right">${formatBRL(it.subtotal)}</td></tr>`
     )
     .join("");
   const paysHtml = r.payments
     .map(
       (p) =>
-        `<div>${paymentLabels[p.method] ?? p.method}${p.status === "pending" ? " (FIADO)" : ""}: <strong>${formatBRL(p.amount)}</strong></div>`
+        `<div>${esc(paymentLabels[p.method] ?? p.method)}${p.status === "pending" ? " (FIADO)" : ""}: <strong>${formatBRL(p.amount)}</strong></div>`
     )
     .join("");
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Comprovante #${r.saleId.slice(0, 8)}</title>
@@ -111,8 +118,8 @@ export const printReceipt = (r: ReceiptData) => {
     <hr>
     <div>Pedido: #${r.saleId.slice(0, 8).toUpperCase()}</div>
     <div>${formatDate(r.createdAt)}</div>
-    ${r.customerName ? `<div>Cliente: ${r.customerName}</div>` : ""}
-    ${r.operatorName ? `<div>Operador: ${r.operatorName}</div>` : ""}
+    ${r.customerName ? `<div>Cliente: ${esc(r.customerName)}</div>` : ""}
+    ${r.operatorName ? `<div>Operador: ${esc(r.operatorName)}</div>` : ""}
     <hr>
     <table>${itemsHtml}</table>
     <hr>
@@ -122,7 +129,7 @@ export const printReceipt = (r: ReceiptData) => {
     <hr>
     <div><strong>PAGAMENTO</strong></div>
     ${paysHtml}
-    ${r.notes ? `<hr><div>Obs: ${r.notes}</div>` : ""}
+    ${r.notes ? `<hr><div>Obs: ${esc(r.notes)}</div>` : ""}
     <hr>
     <div class="footer">Obrigado pela preferência!<br>11 93924-3407 — @1980burguer</div>
     <script>window.onload=()=>{window.print();}</script>
