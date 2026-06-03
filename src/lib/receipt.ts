@@ -118,8 +118,8 @@ export const printReceipt = (r: ReceiptData) => {
     <hr>
     <div>Pedido: #${r.saleId.slice(0, 8).toUpperCase()}</div>
     <div>${formatDate(r.createdAt)}</div>
-    ${r.customerName ? `<div>Cliente: ${r.customerName}</div>` : ""}
-    ${r.operatorName ? `<div>Operador: ${r.operatorName}</div>` : ""}
+    ${r.customerName ? `<div>Cliente: ${esc(r.customerName)}</div>` : ""}
+    ${r.operatorName ? `<div>Operador: ${esc(r.operatorName)}</div>` : ""}
     <hr>
     <table>${itemsHtml}</table>
     <hr>
@@ -129,7 +129,7 @@ export const printReceipt = (r: ReceiptData) => {
     <hr>
     <div><strong>PAGAMENTO</strong></div>
     ${paysHtml}
-    ${r.notes ? `<hr><div>Obs: ${r.notes}</div>` : ""}
+    ${r.notes ? `<hr><div>Obs: ${esc(r.notes)}</div>` : ""}
     <hr>
     <div class="footer">Obrigado pela preferência!<br>11 93924-3407 — @1980burguer</div>
     <script>window.onload=()=>{window.print();}</script>
