@@ -128,6 +128,81 @@ export type Database = {
         }
         Relationships: []
       }
+      ingredient_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          ingredient_id: string
+          notes: string | null
+          quantity: number
+          sale_id: string | null
+          sale_item_id: string | null
+          type: Database["public"]["Enums"]["ingredient_movement_type"]
+          unit_cost: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ingredient_id: string
+          notes?: string | null
+          quantity: number
+          sale_id?: string | null
+          sale_item_id?: string | null
+          type: Database["public"]["Enums"]["ingredient_movement_type"]
+          unit_cost?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ingredient_id?: string
+          notes?: string | null
+          quantity?: number
+          sale_id?: string | null
+          sale_item_id?: string | null
+          type?: Database["public"]["Enums"]["ingredient_movement_type"]
+          unit_cost?: number | null
+        }
+        Relationships: []
+      }
+      ingredients: {
+        Row: {
+          active: boolean
+          cost_per_unit: number
+          created_at: string
+          id: string
+          min_stock: number
+          name: string
+          stock_quantity: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          cost_per_unit?: number
+          created_at?: string
+          id?: string
+          min_stock?: number
+          name: string
+          stock_quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          cost_per_unit?: number
+          created_at?: string
+          id?: string
+          min_stock?: number
+          name?: string
+          stock_quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       online_order_items: {
         Row: {
           created_at: string
@@ -331,6 +406,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      product_recipes: {
+        Row: {
+          created_at: string
+          id: string
+          ingredient_id: string
+          product_id: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          product_id: string
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          product_id?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -606,6 +708,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "operator"
+      ingredient_movement_type: "purchase" | "sale" | "adjustment" | "waste"
       online_order_status:
         | "pending"
         | "accepted"
@@ -750,6 +853,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "operator"],
+      ingredient_movement_type: ["purchase", "sale", "adjustment", "waste"],
       online_order_status: [
         "pending",
         "accepted",

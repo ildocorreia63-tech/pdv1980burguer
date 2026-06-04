@@ -1,46 +1,50 @@
+## Controle de Insumos e Ficha Técnica
 
-# Configurar PDV como app nativo (Capacitor)
+Vou criar um módulo completo de gestão de insumos (ingredientes) com ficha técnica por produto, baixa automática no estoque a cada venda e cálculo de lucro.
 
-Vou preparar o projeto para virar um app nativo instalável no Android e iPhone usando Capacitor, mantendo o hot-reload direto do sandbox da Lovable durante o desenvolvimento.
+### Banco de dados (novas tabelas)
 
-## O que será feito no projeto
+**`ingredients`** — cadastro de insumos
+- `name`, `unit` (un, kg, g, L, ml), `cost_per_unit` (R$), `stock_quantity`, `min_stock` (alerta), `active`
 
-1. **Instalar dependências do Capacitor**
-   - `@capacitor/core`
-   - `@capacitor/cli` (dev)
-   - `@capacitor/ios`
-   - `@capacitor/android`
+**`product_recipes`** — ficha técnica (liga produto → insumos)
+- `product_id`, `ingredient_id`, `quantity` (quanto consome por 1 unidade do produto)
 
-2. **Criar `capacitor.config.ts` na raiz** com:
-   - `appId`: `app.lovable.2f2c57092905478eb8b5917e6ced8784`
-   - `appName`: `pdv1980burguer`
-   - `webDir`: `dist`
-   - Bloco `server` com URL do sandbox + `cleartext: true` para hot-reload no celular enquanto desenvolve.
+**`ingredient_movements`** — histórico de movimentações
+- `ingredient_id`, `type` (`purchase` | `sale` | `adjustment` | `waste`), `quantity` (negativa = saída), `unit_cost`, `sale_id` (opcional), `notes`, `created_by`
 
-3. **Sem mudanças no código do PDV** — a aplicação web continua igual; o Capacitor só empacota.
+**Trigger automático**: ao inserir em `sale_items`, debita os insumos da ficha técnica e registra em `ingredient_movements`.
 
-## O que você precisa fazer depois (no seu computador)
+**RLS**: leitura para staff (admin + operator), escrita só admin (insumos/ficha), movimentações criadas pelo sistema/admin.
 
-Capacitor exige build local — não dá pra rodar emulador/iPhone dentro da Lovable. Passo a passo:
+### Tela nova: `/insumos` (Admin)
 
-1. **Exportar para o GitHub** (botão "Export to GitHub" no topo direito) e fazer `git clone` no seu PC.
-2. `npm install`
-3. Adicionar plataformas:
-   - Android: `npx cap add android` e depois `npx cap update android`
-   - iOS (precisa de Mac com Xcode): `npx cap add ios` e depois `npx cap update ios`
-4. `npm run build`
-5. `npx cap sync` (rode isso sempre depois de `git pull` com novas mudanças)
-6. Rodar no dispositivo/emulador:
-   - Android: `npx cap run android` (precisa Android Studio)
-   - iOS: `npx cap run ios` (precisa Mac + Xcode)
+Três abas:
 
-## Observações importantes
+1. **Insumos** — lista com busca, custo unitário, estoque atual (com alerta visual quando ≤ mínimo), botões: novo, editar, ajuste de estoque (entrada/saída manual).
 
-- **iPhone** só pode ser compilado em um **Mac com Xcode**. Para publicar na App Store é necessário conta Apple Developer (US$ 99/ano).
-- **Android** precisa do **Android Studio**. Publicar na Play Store custa US$ 25 (uma vez).
-- Enquanto o bloco `server.url` apontar para o sandbox, o app no celular carrega ao vivo do preview da Lovable. Para gerar o APK/IPA final de produção, remova essa URL antes do build.
-- Recursos nativos extras (câmera, impressora Bluetooth, notificações) podem ser adicionados depois via plugins do Capacitor — só me avisar quais você precisa.
+2. **Ficha Técnica** — escolhe um produto, mostra ingredientes com quantidades; soma o **custo total** do produto, exibe lado a lado: preço de venda, lucro em R$ e **margem %**. Permite adicionar/remover/editar ingredientes da ficha.
 
-Recomendo ler depois: https://lovable.dev/blog/2025-02-21-making-mobile-apps-with-lovable-capacitor
+3. **Movimentações** — extrato de entradas/saídas com filtro por data e insumo.
 
-Posso seguir com a instalação e configuração?
+### PDV / Cardápio (presentação)
+
+- Card do produto continua igual; opcionalmente mostra badge "sem estoque" se algum insumo da ficha estiver zerado (sem bloquear venda — só aviso).
+
+### Relatórios
+
+- Nova seção: **Lucro real** — para o período, soma `(preço_venda − custo_ficha) × qtd_vendida` por produto, mostra lucro total R$ e margem %.
+
+### Detalhes técnicos
+
+- Função SQL `consume_ingredients_for_sale_item()` chamada por trigger AFTER INSERT em `sale_items`: percorre `product_recipes` e cria movimentações negativas + decrementa `stock_quantity`.
+- Custo do produto = `SUM(ingredient.cost_per_unit × recipe.quantity)`.
+- Lucro R$ = `price − cost`; margem % = `(lucro / price) × 100`.
+- Tudo em `numeric(12,4)` para insumos (granularidade de gramas/ml).
+- Nova rota protegida `adminOnly` no `App.tsx`, link no menu admin.
+
+### Fora de escopo (posso adicionar depois se quiser)
+
+- Bloquear venda quando estoque insuficiente (hoje só alerta).
+- Compras com fornecedor e nota fiscal.
+- Variação de custo médio ponderado (usaremos `cost_per_unit` direto do cadastro).
