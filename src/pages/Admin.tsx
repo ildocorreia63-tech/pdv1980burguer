@@ -250,6 +250,9 @@ export default function Admin() {
       title="Admin — Produtos"
       action={
         <div className="flex gap-1">
+          <Button asChild size="icon" variant="outline" title="Insumos & Ficha Técnica">
+            <Link to="/insumos"><Boxes className="h-4 w-4" /></Link>
+          </Button>
           <Button size="icon" variant="outline" onClick={() => setSettingsOpen(true)} title="Configurações da loja">
             <SettingsIcon className="h-4 w-4" />
           </Button>
