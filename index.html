@@ -31,8 +31,38 @@
   <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/p521kbSmocf8INc2KhIX9C2B2O02/social-images/social-1778289837174-20260505_200715.webp">
   <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/p521kbSmocf8INc2KhIX9C2B2O02/social-images/social-1778289837174-20260505_200715.webp">
   <meta name="twitter:card" content="summary_large_image">
+  <style>
+    html, body { background-color: #f1e7d3; }
+    #boot-splash {
+      position: fixed; inset: 0; z-index: 2147483647;
+      background: #f1e7d3;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 24px;
+      transition: opacity 320ms ease;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    #boot-splash img {
+      width: 144px; height: 144px; border-radius: 28px;
+      box-shadow: 0 10px 30px -10px rgba(20, 12, 8, 0.35);
+    }
+    #boot-splash .spinner {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 3px solid rgba(200, 52, 26, 0.2);
+      border-top-color: #c8341a;
+      animation: boot-spin 0.8s linear infinite;
+    }
+    #boot-splash.boot-splash--hidden { opacity: 0; pointer-events: none; }
+    @keyframes boot-spin { to { transform: rotate(360deg); } }
+    @media (prefers-color-scheme: dark) {
+      html, body, #boot-splash { background: #1a1410; }
+    }
+  </style>
 </head>
   <body>
+    <div id="boot-splash" aria-hidden="true">
+      <img src="/icon-512.png" alt="" width="144" height="144" />
+      <div class="spinner"></div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
