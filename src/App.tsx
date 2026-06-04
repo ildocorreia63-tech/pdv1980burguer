@@ -14,6 +14,7 @@ import Admin from "./pages/Admin";
 import PedidosOnline from "./pages/PedidosOnline";
 import Relatorios from "./pages/Relatorios";
 import Cardapio from "./pages/Cardapio";
+import Insumos from "./pages/Insumos";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
