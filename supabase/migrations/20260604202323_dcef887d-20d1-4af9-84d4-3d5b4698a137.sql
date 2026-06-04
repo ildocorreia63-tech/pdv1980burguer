@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.consume_ingredients_for_sale_item() FROM PUBLIC, anon, authenticated;
