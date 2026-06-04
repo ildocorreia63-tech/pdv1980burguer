@@ -9,7 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
-import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon, Upload, ImageIcon, Loader2, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon, Upload, ImageIcon, Loader2, Clock, Boxes } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { BusinessHours, DEFAULT_HOURS, WEEKDAYS } from "@/lib/businessHours";
 
