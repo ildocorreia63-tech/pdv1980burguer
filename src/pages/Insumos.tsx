@@ -156,7 +156,7 @@ export default function Insumos() {
     if (adjType === "purchase" && adjCost > 0) update.cost_per_unit = adjCost;
     const { error: uErr } = await supabase.from("ingredients" as any).update(update).eq("id", adjIng.id);
     if (uErr) return toast.error(uErr.message);
-    toast.success("Movimentação registrada");
+    toast.success(`Quantidade ajustada para ${newStock.toLocaleString("pt-BR")} ${adjIng.unit}`);
     setAdjOpen(false);
     load();
   };
