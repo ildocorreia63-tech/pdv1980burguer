@@ -181,6 +181,7 @@ export default function Insumos() {
       { onConflict: "product_id,ingredient_id" },
     );
     if (error) return toast.error(error.message);
+    toast.success("Ingrediente adicionado à ficha técnica");
     setRecIng("");
     setRecQty(0);
     load();
@@ -195,6 +196,7 @@ export default function Insumos() {
   const removeRecipe = async (id: string) => {
     const { error } = await supabase.from("product_recipes" as any).delete().eq("id", id);
     if (error) return toast.error(error.message);
+    toast.success("Ingrediente removido da ficha técnica");
     load();
   };
 
