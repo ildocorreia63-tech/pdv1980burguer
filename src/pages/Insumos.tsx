@@ -321,8 +321,13 @@ export default function Insumos() {
                     onChange={(e) => setRecQty(Number(e.target.value))}
                     className="w-24"
                   />
-                  <Button size="icon" onClick={addRecipe}><Plus className="h-4 w-4" /></Button>
+                  <Button onClick={addRecipe} className="gap-1">
+                    <Plus className="h-4 w-4" /> Adicionar
+                  </Button>
                 </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Selecione o insumo, informe a quantidade e toque em <strong>Adicionar</strong> para salvar.
+                </p>
               </Card>
 
               <div className="space-y-2">
@@ -331,14 +336,26 @@ export default function Insumos() {
                   if (!ing) return null;
                   const itemCost = ing.cost_per_unit * r.quantity;
                   return (
-                    <Card key={r.id} className="p-3 flex items-center gap-3">
+                    <Card key={r.id} className="p-3 flex items-center gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{ing.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {r.quantity.toLocaleString("pt-BR")} {ing.unit} × {formatBRL(ing.cost_per_unit)} ={" "}
+                          {formatBRL(ing.cost_per_unit)} / {ing.unit} · Total:{" "}
                           <strong>{formatBRL(itemCost)}</strong>
                         </p>
                       </div>
+                      <Input
+                        type="number"
+                        step="0.001"
+                        defaultValue={r.quantity}
+                        onBlur={(e) => {
+                          const v = Number(e.target.value);
+                          if (v > 0 && v !== r.quantity) updateRecipeQty(r.id, v);
+                        }}
+                        className="w-20 h-8"
+                        title={`Quantidade em ${ing.unit}`}
+                      />
+                      <span className="text-xs text-muted-foreground">{ing.unit}</span>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => removeRecipe(r.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
