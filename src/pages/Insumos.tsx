@@ -99,11 +99,16 @@ export default function Insumos() {
   const saveIng = async () => {
     if (!fName.trim()) return toast.error("Informe o nome");
     const payload = { name: fName.trim(), unit: fUnit, cost_per_unit: fCost, stock_quantity: fStock, min_stock: fMin };
+    const isQuantityChanged = editing && editing.stock_quantity !== fStock;
     const { error } = editing
       ? await supabase.from("ingredients" as any).update(payload).eq("id", editing.id)
       : await supabase.from("ingredients" as any).insert(payload);
     if (error) return toast.error(error.message);
-    toast.success("Insumo salvo");
+    if (editing && isQuantityChanged) {
+      toast.success(`Quantidade atualizada para ${fStock.toLocaleString("pt-BR")} ${fUnit}`);
+    } else {
+      toast.success("Insumo salvo");
+    }
     setIngOpen(false);
     load();
   };
