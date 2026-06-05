@@ -185,6 +185,13 @@ export default function Insumos() {
     setRecQty(0);
     load();
   };
+  const updateRecipeQty = async (id: string, quantity: number) => {
+    if (quantity <= 0) return;
+    const { error } = await supabase.from("product_recipes" as any).update({ quantity }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Quantidade atualizada");
+    load();
+  };
   const removeRecipe = async (id: string) => {
     const { error } = await supabase.from("product_recipes" as any).delete().eq("id", id);
     if (error) return toast.error(error.message);
