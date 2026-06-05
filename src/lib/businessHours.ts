@@ -42,14 +42,15 @@ export function isOpenNow(hours: BusinessHours | null | undefined, now = new Dat
 
 export function nextOpeningLabel(hours: BusinessHours | null | undefined, now = new Date()): string {
   if (!hours) return "";
-  for (let i = 1; i <= 7; i++) {
+  const curMin = now.getHours() * 60 + now.getMinutes();
+  for (let i = 0; i <= 7; i++) {
     const d = new Date(now);
     d.setDate(now.getDate() + i);
     const cfg = hours[String(d.getDay())];
-    if (cfg?.open) {
-      const label = WEEKDAYS[d.getDay()].label;
-      return `Abrimos ${i === 1 ? "amanhã" : label} às ${cfg.from}`;
-    }
+    if (!cfg?.open) continue;
+    if (i === 0 && toMinutes(cfg.from) <= curMin) continue;
+    const label = i === 0 ? "hoje" : i === 1 ? "amanhã" : WEEKDAYS[d.getDay()].label;
+    return `Abrimos ${label} às ${cfg.from}`;
   }
   return "";
 }
