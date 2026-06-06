@@ -186,7 +186,10 @@ export default function Insumos() {
       { onConflict: "product_id,ingredient_id" },
     );
     if (error) return toast.error(error.message);
-    toast.success("Ingrediente adicionado à ficha técnica");
+    const ingObj = ingredients.find((i) => i.id === recIng);
+    toast.success(
+      `Ingrediente adicionado · ${recQty.toLocaleString("pt-BR")}${ingObj ? ` ${ingObj.unit}` : ""}`,
+    );
     setRecIng("");
     setRecQty(0);
     load();
