@@ -248,8 +248,8 @@ export default function Admin() {
   return (
     <AppShell
       title="Admin — Produtos"
-      action={
-        <div className="flex gap-1">
+      subAction={
+        <div className="flex gap-1 flex-wrap">
           <Button asChild size="icon" variant="outline" title="Insumos & Ficha Técnica">
             <Link to="/insumos"><Boxes className="h-4 w-4" /></Link>
           </Button>

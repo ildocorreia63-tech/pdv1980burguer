@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 
-export const AppHeader = ({ title, action }: { title?: string; action?: ReactNode }) => {
+export const AppHeader = ({ title, action, subAction }: { title?: string; action?: ReactNode; subAction?: ReactNode }) => {
   const { signOut, user } = useAuth();
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur-md">
@@ -23,6 +23,11 @@ export const AppHeader = ({ title, action }: { title?: string; action?: ReactNod
           <LogOut className="h-4 w-4" />
         </Button>
       </div>
+      {subAction && (
+        <div className="px-4 pb-3 flex gap-1 flex-wrap">
+          {subAction}
+        </div>
+      )}
     </header>
   );
 };
