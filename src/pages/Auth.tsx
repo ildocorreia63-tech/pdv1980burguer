@@ -51,6 +51,17 @@ export default function Auth() {
     toast.success("Conta criada! Você já pode entrar.");
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) return toast.error("Digite seu email primeiro");
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Enviamos um link de redefinição para o seu email.");
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center px-4 gradient-paper">
       <div className="w-full max-w-sm">
