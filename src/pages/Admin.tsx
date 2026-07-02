@@ -99,6 +99,8 @@ export default function Admin() {
       setPixReceiver(sx.pix_receiver_name ?? "");
       setPixCity(sx.pix_city ?? "");
       setHours({ ...DEFAULT_HOURS, ...(sx.business_hours ?? {}) });
+      setBannerUrl(sx.banner_url ?? null);
+      setBannerEnabled(sx.banner_enabled ?? true);
     }
   };
 
