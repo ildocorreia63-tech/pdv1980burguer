@@ -18,28 +18,6 @@ export default function Auth() {
   const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const PasswordInput = ({ id }: { id: string }) => (
-    <div className="relative">
-      <Input
-        id={id}
-        type={showPassword ? "text" : "password"}
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-        minLength={6}
-        className="pr-10"
-      />
-      <button
-        type="button"
-        onClick={() => setShowPassword((v) => !v)}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-        aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-        tabIndex={-1}
-      >
-        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-      </button>
-    </div>
-  );
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
