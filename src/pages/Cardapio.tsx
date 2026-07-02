@@ -345,6 +345,16 @@ export default function Cardapio() {
     <div className="min-h-screen pb-24 bg-background">
       {/* Hero */}
       <header className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
+        {settings?.banner_enabled && settings?.banner_url && (
+          <div className="mx-auto max-w-2xl px-4 pt-4">
+            <img
+              src={settings.banner_url}
+              alt={`Banner ${settings?.store_name ?? ""}`}
+              className="w-full h-40 sm:h-56 object-cover rounded-xl ring-2 ring-white/30 shadow-lg"
+              loading="eager"
+            />
+          </div>
+        )}
         <div className="mx-auto max-w-2xl px-4 pt-6 pb-8 flex items-center gap-4">
           <div className="h-20 w-20 rounded-2xl bg-black/30 ring-2 ring-white/30 overflow-hidden flex items-center justify-center p-1 shrink-0">
             <img src={logo} alt={settings?.store_name ?? "Loja"} className="h-full w-full object-contain" />
