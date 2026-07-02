@@ -524,6 +524,46 @@ export default function Admin() {
             </div>
 
             <div className="rounded-lg border border-border p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-primary" />
+                <p className="font-display text-sm">Banner do cardápio</p>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Imagem exibida no topo do cardápio digital (recomendado 1200×400px, máx 3MB).</p>
+              {bannerUrl ? (
+                <div className="relative rounded-md overflow-hidden border border-border">
+                  <img src={bannerUrl} alt="Banner" className="w-full h-32 object-cover" />
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed border-border h-24 flex items-center justify-center text-xs text-muted-foreground">
+                  Nenhum banner
+                </div>
+              )}
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBannerUpload(f); e.target.value = ""; }}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="flex-1" disabled={bannerUploading} onClick={() => bannerInputRef.current?.click()}>
+                  {bannerUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+                  {bannerUrl ? "Trocar" : "Enviar"}
+                </Button>
+                {bannerUrl && (
+                  <Button size="sm" variant="ghost" className="text-destructive" onClick={removeBanner}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-border p-2">
+                <Label htmlFor="banner_enabled" className="text-xs">Exibir banner no cardápio</Label>
+                <Switch id="banner_enabled" checked={bannerEnabled} onCheckedChange={setBannerEnabled} />
+              </div>
+            </div>
+
+
+            <div className="rounded-lg border border-border p-3 space-y-2">
               <p className="font-display text-sm">PIX (para gerar QR Code no cardápio)</p>
               <div>
                 <Label>Chave PIX</Label>
