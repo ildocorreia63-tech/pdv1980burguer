@@ -72,6 +72,10 @@ export default function Admin() {
   const [pixReceiver, setPixReceiver] = useState("");
   const [pixCity, setPixCity] = useState("");
   const [hours, setHours] = useState<BusinessHours>(DEFAULT_HOURS);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [bannerEnabled, setBannerEnabled] = useState(true);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const [settingsId, setSettingsId] = useState<string | null>(null);
 
   const load = async () => {
