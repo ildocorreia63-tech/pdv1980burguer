@@ -45,6 +45,7 @@ const App = () => (
             <Routes>
               <Route path="/cardapio" element={<Cardapio />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
               <Route path="/pdv" element={<ProtectedRoute><PDV /></ProtectedRoute>} />
               <Route path="/pedidos" element={<ProtectedRoute><PedidosOnline /></ProtectedRoute>} />
