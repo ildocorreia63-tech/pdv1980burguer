@@ -676,6 +676,8 @@ export type Database = {
     Views: {
       public_store_settings: {
         Row: {
+          banner_enabled: boolean | null
+          banner_url: string | null
           business_hours: Json | null
           id: string | null
           menu_open: boolean | null
@@ -684,6 +686,8 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          banner_enabled?: boolean | null
+          banner_url?: string | null
           business_hours?: Json | null
           id?: string | null
           menu_open?: boolean | null
@@ -692,6 +696,8 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          banner_enabled?: boolean | null
+          banner_url?: string | null
           business_hours?: Json | null
           id?: string | null
           menu_open?: boolean | null
