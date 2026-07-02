@@ -242,9 +242,43 @@ export default function Admin() {
       pix_receiver_name: pixReceiver.trim() || null,
       pix_city: pixCity.trim() || null,
       business_hours: hours,
+      banner_url: bannerUrl,
+      banner_enabled: bannerEnabled,
     } as any).eq("id", settingsId);
     if (error) return toast.error(error.message);
     toast.success("Configurações salvas");
+  };
+
+  const handleBannerUpload = async (file: File) => {
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) return toast.error("Imagem muito grande (máx 3MB)");
+    if (!file.type.startsWith("image/")) return toast.error("Arquivo deve ser uma imagem");
+    setBannerUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const path = `banners/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("product-images").upload(path, file, { cacheControl: "3600", upsert: false });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+      setBannerUrl(data.publicUrl);
+      if (settingsId) {
+        await supabase.from("store_settings").update({ banner_url: data.publicUrl } as any).eq("id", settingsId);
+      }
+      toast.success("Banner atualizado");
+    } catch (err: any) {
+      toast.error(err.message ?? "Erro ao enviar banner");
+    } finally {
+      setBannerUploading(false);
+    }
+  };
+
+  const removeBanner = async () => {
+    if (!confirm("Remover banner?")) return;
+    setBannerUrl(null);
+    if (settingsId) {
+      await supabase.from("store_settings").update({ banner_url: null } as any).eq("id", settingsId);
+    }
+    toast.success("Banner removido");
   };
 
   const updateDay = (key: string, patch: Partial<BusinessHours[string]>) => {
