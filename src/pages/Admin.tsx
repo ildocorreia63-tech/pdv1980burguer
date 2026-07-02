@@ -72,6 +72,10 @@ export default function Admin() {
   const [pixReceiver, setPixReceiver] = useState("");
   const [pixCity, setPixCity] = useState("");
   const [hours, setHours] = useState<BusinessHours>(DEFAULT_HOURS);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [bannerEnabled, setBannerEnabled] = useState(true);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const [settingsId, setSettingsId] = useState<string | null>(null);
 
   const load = async () => {
@@ -95,6 +99,8 @@ export default function Admin() {
       setPixReceiver(sx.pix_receiver_name ?? "");
       setPixCity(sx.pix_city ?? "");
       setHours({ ...DEFAULT_HOURS, ...(sx.business_hours ?? {}) });
+      setBannerUrl(sx.banner_url ?? null);
+      setBannerEnabled(sx.banner_enabled ?? true);
     }
   };
 
@@ -236,9 +242,43 @@ export default function Admin() {
       pix_receiver_name: pixReceiver.trim() || null,
       pix_city: pixCity.trim() || null,
       business_hours: hours,
+      banner_url: bannerUrl,
+      banner_enabled: bannerEnabled,
     } as any).eq("id", settingsId);
     if (error) return toast.error(error.message);
     toast.success("Configurações salvas");
+  };
+
+  const handleBannerUpload = async (file: File) => {
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) return toast.error("Imagem muito grande (máx 3MB)");
+    if (!file.type.startsWith("image/")) return toast.error("Arquivo deve ser uma imagem");
+    setBannerUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const path = `banners/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("product-images").upload(path, file, { cacheControl: "3600", upsert: false });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+      setBannerUrl(data.publicUrl);
+      if (settingsId) {
+        await supabase.from("store_settings").update({ banner_url: data.publicUrl } as any).eq("id", settingsId);
+      }
+      toast.success("Banner atualizado");
+    } catch (err: any) {
+      toast.error(err.message ?? "Erro ao enviar banner");
+    } finally {
+      setBannerUploading(false);
+    }
+  };
+
+  const removeBanner = async () => {
+    if (!confirm("Remover banner?")) return;
+    setBannerUrl(null);
+    if (settingsId) {
+      await supabase.from("store_settings").update({ banner_url: null } as any).eq("id", settingsId);
+    }
+    toast.success("Banner removido");
   };
 
   const updateDay = (key: string, patch: Partial<BusinessHours[string]>) => {
@@ -482,6 +522,46 @@ export default function Admin() {
                 Salvar horários
               </Button>
             </div>
+
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-primary" />
+                <p className="font-display text-sm">Banner do cardápio</p>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Imagem exibida no topo do cardápio digital (recomendado 1200×400px, máx 3MB).</p>
+              {bannerUrl ? (
+                <div className="relative rounded-md overflow-hidden border border-border">
+                  <img src={bannerUrl} alt="Banner" className="w-full h-32 object-cover" />
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed border-border h-24 flex items-center justify-center text-xs text-muted-foreground">
+                  Nenhum banner
+                </div>
+              )}
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleBannerUpload(f); e.target.value = ""; }}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="flex-1" disabled={bannerUploading} onClick={() => bannerInputRef.current?.click()}>
+                  {bannerUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+                  {bannerUrl ? "Trocar" : "Enviar"}
+                </Button>
+                {bannerUrl && (
+                  <Button size="sm" variant="ghost" className="text-destructive" onClick={removeBanner}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-border p-2">
+                <Label htmlFor="banner_enabled" className="text-xs">Exibir banner no cardápio</Label>
+                <Switch id="banner_enabled" checked={bannerEnabled} onCheckedChange={setBannerEnabled} />
+              </div>
+            </div>
+
 
             <div className="rounded-lg border border-border p-3 space-y-2">
               <p className="font-display text-sm">PIX (para gerar QR Code no cardápio)</p>

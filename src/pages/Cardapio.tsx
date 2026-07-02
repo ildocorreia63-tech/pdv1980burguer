@@ -25,7 +25,7 @@ type Product = { id: string; name: string; price: number; description: string | 
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
 type CartItem = { product: Product; qty: number; unavailable?: boolean };
-type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; business_hours: BusinessHours | null };
+type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; business_hours: BusinessHours | null; banner_url: string | null; banner_enabled: boolean };
 
 export default function Cardapio() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -105,7 +105,7 @@ export default function Cardapio() {
       const [c, z, s] = await Promise.all([
         supabase.from("categories").select("id,name").order("sort_order"),
         supabase.from("delivery_zones").select("id,name,fee").eq("active", true).order("sort_order"),
-        supabase.from("public_store_settings" as any).select("store_name,whatsapp_number,welcome_message,menu_open,business_hours").maybeSingle(),
+        supabase.from("public_store_settings" as any).select("store_name,whatsapp_number,welcome_message,menu_open,business_hours,banner_url,banner_enabled").maybeSingle(),
       ]);
       setCats(c.data ?? []);
       setZones((z.data ?? []).map((x) => ({ ...x, fee: Number(x.fee) })));
@@ -345,6 +345,16 @@ export default function Cardapio() {
     <div className="min-h-screen pb-24 bg-background">
       {/* Hero */}
       <header className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
+        {settings?.banner_enabled && settings?.banner_url && (
+          <div className="mx-auto max-w-2xl px-4 pt-4">
+            <img
+              src={settings.banner_url}
+              alt={`Banner ${settings?.store_name ?? ""}`}
+              className="w-full h-40 sm:h-56 object-cover rounded-xl ring-2 ring-white/30 shadow-lg"
+              loading="eager"
+            />
+          </div>
+        )}
         <div className="mx-auto max-w-2xl px-4 pt-6 pb-8 flex items-center gap-4">
           <div className="h-20 w-20 rounded-2xl bg-black/30 ring-2 ring-white/30 overflow-hidden flex items-center justify-center p-1 shrink-0">
             <img src={logo} alt={settings?.store_name ?? "Loja"} className="h-full w-full object-contain" />
