@@ -98,6 +98,14 @@ export default function Auth() {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Entrar
                 </Button>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                  className="w-full text-xs text-primary hover:underline text-center"
+                >
+                  Esqueci minha senha
+                </button>
               </form>
             </TabsContent>
 
