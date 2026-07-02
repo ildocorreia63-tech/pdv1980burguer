@@ -605,6 +605,8 @@ export type Database = {
       }
       store_settings: {
         Row: {
+          banner_enabled: boolean
+          banner_url: string | null
           business_hours: Json
           created_at: string
           id: string
@@ -618,6 +620,8 @@ export type Database = {
           whatsapp_number: string | null
         }
         Insert: {
+          banner_enabled?: boolean
+          banner_url?: string | null
           business_hours?: Json
           created_at?: string
           id?: string
@@ -631,6 +635,8 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Update: {
+          banner_enabled?: boolean
+          banner_url?: string | null
           business_hours?: Json
           created_at?: string
           id?: string
