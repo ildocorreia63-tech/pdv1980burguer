@@ -728,6 +728,17 @@ export default function Cardapio() {
           <Button onClick={() => setConfirmOpen(false)}>Fechar</Button>
         </DialogContent>
       </Dialog>
+
+      {/* Debug button + dialog */}
+      <button
+        type="button"
+        onClick={() => setDebugOpen(true)}
+        aria-label="Abrir logs de diagnóstico"
+        className="fixed bottom-4 left-4 z-30 h-9 w-9 rounded-full bg-muted/80 text-muted-foreground border border-border flex items-center justify-center opacity-60 hover:opacity-100 backdrop-blur"
+      >
+        <Bug className="h-4 w-4" />
+      </button>
+      <DebugLogDialog open={debugOpen} onOpenChange={setDebugOpen} filterTraceId={currentTrace} />
     </div>
   );
 }
