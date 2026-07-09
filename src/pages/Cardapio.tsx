@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check, Bug } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -17,6 +17,8 @@ import QRCode from "qrcode";
 import { buildPixPayload } from "@/lib/pix";
 import { BusinessHours, isOpenNow, nextOpeningLabel } from "@/lib/businessHours";
 import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentState";
+import { logEvent, newTraceId } from "@/lib/debugLog";
+import { DebugLogDialog } from "@/components/DebugLogDialog";
 
 const CART_KEY = "cardapio:cart:v1";
 const CHECKOUT_KEY = "cardapio:checkout:v1";
@@ -76,6 +78,8 @@ export default function Cardapio() {
   const [pixPaid, setPixPaid] = useState(false);
   const [pixChecking, setPixChecking] = useState(false);
   const [pendingOrder, setPendingOrder] = useState<{ id: string; order_number: number } | null>(null);
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [currentTrace, setCurrentTrace] = useState<string | undefined>(undefined);
 
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -176,24 +180,32 @@ export default function Cardapio() {
   useEffect(() => {
     if (!pixOpen || !pendingOrder || pixPaid) return;
     let cancelled = false;
+    const scope = "cardapio.pixPoll";
+    const trace_id = currentTrace ?? newTraceId("poll");
+    logEvent(trace_id, scope, "start", "Polling iniciado", "info", { order_id: pendingOrder.id });
     const tick = async () => {
       if (cancelled) return;
       setPixChecking(true);
       try {
-        const { data } = await supabase.functions.invoke("asaas-check-payment", {
-          body: { order_id: pendingOrder.id },
+        const { data, error } = await supabase.functions.invoke("asaas-check-payment", {
+          body: { order_id: pendingOrder.id, trace_id },
         });
+        if (error) logEvent(trace_id, scope, "tick", "Erro na verificação", "warn", { message: error.message });
+        else logEvent(trace_id, scope, "tick", "Status recebido", "info", data);
         if (!cancelled && data?.paid) {
+          logEvent(trace_id, scope, "paid", "Pagamento confirmado ✅");
           setPixPaid(true);
           toast.success("Pagamento confirmado! ✅");
         }
-      } catch {/* ignore */}
+      } catch (e: any) {
+        logEvent(trace_id, scope, "tick", "Exceção no polling", "error", { message: e?.message });
+      }
       setPixChecking(false);
     };
     tick();
     const id = setInterval(tick, 5000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [pixOpen, pendingOrder, pixPaid]);
+    return () => { cancelled = true; clearInterval(id); logEvent(trace_id, scope, "stop", "Polling encerrado"); };
+  }, [pixOpen, pendingOrder, pixPaid, currentTrace]);
 
   const buildWhatsappMessage = (orderNumber: number, paid: boolean) => {
     const lines: string[] = [];
@@ -252,20 +264,34 @@ export default function Cardapio() {
   };
 
   const submitOrder = async () => {
+    const trace_id = newTraceId("order");
+    setCurrentTrace(trace_id);
+    const scope = "cardapio.submitOrder";
+    logEvent(trace_id, scope, "start", "Iniciando envio do pedido", "info", {
+      itemsInCart: cart.length, paymentMethod, orderType, subtotal, total, zoneId, hasName: !!name.trim(), hasPhone: !!phone.trim(),
+    });
+
     const availableCart = cart.filter((x) => !x.unavailable);
-    if (availableCart.length === 0) return toast.error("Nenhum item disponível no carrinho");
-    if (!name.trim()) return toast.error("Informe seu nome");
-    if (!phone.trim()) return toast.error("Informe o telefone");
+    if (availableCart.length === 0) {
+      logEvent(trace_id, scope, "validate", "Nenhum item disponível", "warn");
+      return toast.error("Nenhum item disponível no carrinho");
+    }
+    if (!name.trim()) { logEvent(trace_id, scope, "validate", "Nome vazio", "warn"); return toast.error("Informe seu nome"); }
+    if (!phone.trim()) { logEvent(trace_id, scope, "validate", "Telefone vazio", "warn"); return toast.error("Informe o telefone"); }
     if (orderType === "delivery") {
-      if (!zoneId) return toast.error("Selecione o bairro");
-      if (!street.trim() || !number.trim()) return toast.error("Informe rua e número");
+      if (!zoneId) { logEvent(trace_id, scope, "validate", "Bairro não selecionado", "warn"); return toast.error("Selecione o bairro"); }
+      if (!street.trim() || !number.trim()) { logEvent(trace_id, scope, "validate", "Endereço incompleto", "warn"); return toast.error("Informe rua e número"); }
     }
     const changeForNum = paymentMethod === "cash" && changeFor ? Number(changeFor.replace(",", ".")) : null;
     if (paymentMethod === "cash" && changeForNum !== null && (isNaN(changeForNum) || changeForNum < total)) {
+      logEvent(trace_id, scope, "validate", "Troco inválido", "warn", { changeForNum, total });
       return toast.error("Troco para um valor maior que o total");
     }
+    logEvent(trace_id, scope, "validate", "Validações OK");
     setSubmitting(true);
+    let stage = "insert_order";
     try {
+      logEvent(trace_id, scope, stage, "Inserindo pedido em online_orders");
       const { data: order, error } = await supabase
         .from("online_orders")
         .insert({
@@ -288,8 +314,13 @@ export default function Cardapio() {
         } as any)
         .select("id, order_number")
         .single();
-      if (error) throw error;
+      if (error) {
+        logEvent(trace_id, scope, stage, "Falha ao inserir pedido", "error", { code: (error as any).code, message: error.message, details: (error as any).details, hint: (error as any).hint });
+        throw error;
+      }
+      logEvent(trace_id, scope, stage, "Pedido criado", "info", { order_id: order.id, order_number: order.order_number });
 
+      stage = "insert_items";
       const items = availableCart.map((c) => ({
         online_order_id: order.id,
         product_id: c.product.id,
@@ -298,15 +329,25 @@ export default function Cardapio() {
         quantity: c.qty,
         subtotal: c.product.price * c.qty,
       }));
+      logEvent(trace_id, scope, stage, `Inserindo ${items.length} itens`);
       const { error: e2 } = await supabase.from("online_order_items").insert(items);
-      if (e2) throw e2;
+      if (e2) {
+        logEvent(trace_id, scope, stage, "Falha ao inserir itens", "error", { code: (e2 as any).code, message: e2.message, details: (e2 as any).details, hint: (e2 as any).hint });
+        throw e2;
+      }
+      logEvent(trace_id, scope, stage, "Itens inseridos");
 
       if (paymentMethod === "pix") {
-        // Create Asaas charge and open QR dialog
+        stage = "asaas_create_pix";
+        logEvent(trace_id, scope, stage, "Chamando edge function asaas-create-pix", "info", { order_id: order.id });
         const { data: pix, error: pixErr } = await supabase.functions.invoke("asaas-create-pix", {
-          body: { order_id: order.id },
+          body: { order_id: order.id, trace_id },
         });
-        if (pixErr || pix?.error) throw new Error(pix?.error || pixErr?.message || "Erro ao gerar PIX");
+        if (pixErr || pix?.error) {
+          logEvent(trace_id, scope, stage, "Falha ao gerar PIX", "error", { pixErr: pixErr?.message, pixError: pix?.error, remote_trace: pix?.trace_id });
+          throw new Error(pix?.error || pixErr?.message || "Erro ao gerar PIX");
+        }
+        logEvent(trace_id, scope, stage, "PIX gerado", "info", { payment_id: pix.payment_id, has_qr: !!pix.qr_code, remote_trace: pix.trace_id });
         setPixPayload(pix.payload);
         setPixQrDataUrl(`data:image/png;base64,${pix.qr_code}`);
         setPendingOrder({ id: order.id, order_number: order.order_number });
@@ -314,11 +355,16 @@ export default function Cardapio() {
         setPixCopied(false);
         setPixOpen(true);
       } else {
+        logEvent(trace_id, scope, "whatsapp", "Abrindo WhatsApp (pagamento na entrega)");
         sendWhatsapp(order.order_number, false);
         finishAndReset(order.order_number);
       }
     } catch (err: any) {
-      toast.error(err.message ?? "Erro ao enviar pedido");
+      logEvent(trace_id, scope, `${stage}:catch`, err?.message ?? "Erro desconhecido", "error", { name: err?.name, stack: err?.stack });
+      toast.error(err.message ?? "Erro ao enviar pedido", {
+        description: `Etapa: ${stage} · ${trace_id}`,
+        action: { label: "Ver logs", onClick: () => setDebugOpen(true) },
+      });
     } finally {
       setSubmitting(false);
     }
@@ -682,6 +728,17 @@ export default function Cardapio() {
           <Button onClick={() => setConfirmOpen(false)}>Fechar</Button>
         </DialogContent>
       </Dialog>
+
+      {/* Debug button + dialog */}
+      <button
+        type="button"
+        onClick={() => setDebugOpen(true)}
+        aria-label="Abrir logs de diagnóstico"
+        className="fixed bottom-4 left-4 z-30 h-9 w-9 rounded-full bg-muted/80 text-muted-foreground border border-border flex items-center justify-center opacity-60 hover:opacity-100 backdrop-blur"
+      >
+        <Bug className="h-4 w-4" />
+      </button>
+      <DebugLogDialog open={debugOpen} onOpenChange={setDebugOpen} filterTraceId={currentTrace} />
     </div>
   );
 }
