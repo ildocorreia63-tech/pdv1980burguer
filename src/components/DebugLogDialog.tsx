@@ -13,7 +13,7 @@ export function DebugLogDialog({
   filterTraceId?: string;
 }) {
   const [list, setList] = useState<LogEntry[]>(getLog());
-  useEffect(() => { const un = subscribeLog(setList); return () => { un; }; }, []);
+  useEffect(() => subscribeLog(setList), []);
   const shown = filterTraceId ? list.filter((e) => e.trace_id === filterTraceId) : list;
 
   const copy = async () => {

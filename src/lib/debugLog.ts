@@ -68,8 +68,9 @@ export function logEvent(
 }
 
 export function getLog(): LogEntry[] { return [...buffer]; }
-export function subscribeLog(fn: (list: LogEntry[]) => void) {
-  listeners.add(fn); return () => listeners.delete(fn);
+export function subscribeLog(fn: (list: LogEntry[]) => void): () => void {
+  listeners.add(fn);
+  return () => { listeners.delete(fn); };
 }
 export function clearLog() { buffer = []; save(); listeners.forEach((fn) => fn(buffer)); }
 export function logAsText(): string {
