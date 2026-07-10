@@ -805,6 +805,19 @@ export default function Cardapio() {
                     <Download className="h-4 w-4" /> Baixar QR
                   </Button>
                 </div>
+                <Button
+                  variant="secondary"
+                  className="w-full gap-2"
+                  onClick={async () => {
+                    const text = `PIX Copia e Cola — Pedido #${pendingOrder?.order_number ?? ""}\nValor: ${formatBRL(total)}\n\n${pixPayload}`;
+                    try {
+                      if (navigator.share) await navigator.share({ title: "Pagamento PIX", text });
+                      else { await navigator.clipboard.writeText(text); toast.success("Código copiado para compartilhar"); }
+                    } catch { /* usuário cancelou */ }
+                  }}
+                >
+                  <Share2 className="h-4 w-4" /> Compartilhar código PIX
+                </Button>
                 <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-center">
                   <p className="text-xs">
                     {pixChecking ? "🔄 Verificando pagamento..." : "⏳ Aguardando pagamento (verifica a cada 5s)"}
