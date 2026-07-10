@@ -746,13 +746,33 @@ export default function Cardapio() {
             {!pixPaid && payMode === "card" && (
               <>
                 <Button
+                  asChild
                   className="w-full h-12 font-display text-base gap-2"
-                  onClick={() => cardInvoiceUrl && window.open(cardInvoiceUrl, "_blank")}
                 >
-                  <ExternalLink className="h-5 w-5" /> Abrir checkout do cartão
+                  <a href={cardInvoiceUrl} target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-5 w-5" /> Abrir checkout do cartão
+                  </a>
                 </Button>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Link do checkout</p>
+                  <div className="rounded-md border border-border bg-muted/40 p-2 text-[11px] font-mono break-all max-h-20 overflow-y-auto">
+                    {cardInvoiceUrl}
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full mt-2 gap-2"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(cardInvoiceUrl);
+                        toast.success("Link copiado");
+                      } catch { toast.error("Não foi possível copiar"); }
+                    }}
+                  >
+                    <Copy className="h-4 w-4" /> Copiar link
+                  </Button>
+                </div>
                 <p className="text-[11px] text-muted-foreground text-center">
-                  Se a aba não abriu, clique no botão acima. Após pagar, a confirmação chega automaticamente.
+                  Se a aba não abriu, use o botão ou copie o link. Após pagar, a confirmação chega automaticamente.
                 </p>
                 <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-center">
                   <p className="text-xs">
