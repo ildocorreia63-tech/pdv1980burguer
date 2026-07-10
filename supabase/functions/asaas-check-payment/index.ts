@@ -60,12 +60,16 @@ Deno.serve(async (req) => {
 
     if (paid && !order.payment_confirmed_at) {
       stage = "update_order";
+      // Só avança para "pending" quando estava aguardando pagamento.
+      // Se cozinha já aceitou/faturou/cancelou, preservamos o status atual
+      // e apenas marcamos a data de confirmação.
+      const nextStatus = order.status === "pending_payment" ? "pending" : order.status;
       const upd = await supabase.from("online_orders").update({
         payment_confirmed_at: new Date().toISOString(),
-        status: "pending",
+        status: nextStatus,
       }).eq("id", order_id);
       if (upd.error) log(trace_id, stage, "Falha ao atualizar pedido", { message: upd.error.message });
-      else log(trace_id, stage, "Pedido marcado como pago");
+      else log(trace_id, stage, "Pedido marcado como pago", { nextStatus });
     }
     return json({ paid, status: p.status, trace_id });
   } catch (e) {
