@@ -682,11 +682,15 @@ export default function Cardapio() {
             </div>
 
             <Button className="w-full h-12 font-display text-lg gap-2" onClick={submitOrder} disabled={submitting}>
-              {paymentMethod === "pix" ? <><QrCode className="h-5 w-5" /> Gerar PIX e enviar</> : <><MessageCircle className="h-5 w-5" /> Enviar pedido pelo WhatsApp</>}
+              {paymentMethod === "pix" ? <><QrCode className="h-5 w-5" /> Gerar PIX e enviar</>
+                : (paymentMethod === "credit" || paymentMethod === "debit") ? <><CreditCard className="h-5 w-5" /> Pagar com cartão</>
+                : <><MessageCircle className="h-5 w-5" /> Enviar pedido pelo WhatsApp</>}
             </Button>
             <p className="text-[11px] text-muted-foreground text-center">
               {paymentMethod === "pix"
                 ? "Pague o PIX para o pedido seguir automaticamente para o WhatsApp."
+                : (paymentMethod === "credit" || paymentMethod === "debit")
+                ? "Abriremos um checkout seguro para o pagamento."
                 : "Confirme detalhes do pagamento na conversa do WhatsApp."}
             </p>
           </div>
