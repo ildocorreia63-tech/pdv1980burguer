@@ -318,7 +318,7 @@ export default function Cardapio() {
           notes: notes.trim() || null,
           payment_method: paymentMethod,
           payment_change_for: changeForNum,
-          status: paymentMethod === "pix" ? "pending_payment" : "pending",
+          status: (paymentMethod === "pix" || paymentMethod === "credit" || paymentMethod === "debit") ? "pending_payment" : "pending",
         } as any)
         .select("id, order_number")
         .single();
