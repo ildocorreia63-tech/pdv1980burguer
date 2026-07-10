@@ -224,11 +224,25 @@ export default function Cardapio() {
         (payload) => {
           const row = payload.new as any;
           if (row.payment_confirmed_at) {
-            setPayStatus("confirmed");
+            setPayStatus((prev) => {
+              if (prev !== "confirmed") {
+                toast.success("Pagamento confirmado! ✅", {
+                  description: "Redirecionando para o acompanhamento...",
+                });
+                setTimeout(() => {
+                  window.location.href = `/acompanhar/${pendingOrder.id}`;
+                }, 1500);
+              }
+              return "confirmed";
+            });
             setPixPaid(true);
           } else if (row.status === "rejected" || row.cancelled_at) {
-            setPayStatus("failed");
-            setPayFailReason(row.cancellation_reason ?? "Pagamento não autorizado");
+            const reason = row.cancellation_reason ?? "Pagamento não autorizado";
+            setPayStatus((prev) => {
+              if (prev !== "failed") toast.error("Pagamento recusado", { description: reason });
+              return "failed";
+            });
+            setPayFailReason(reason);
           }
         },
       )
