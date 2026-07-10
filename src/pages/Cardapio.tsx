@@ -234,6 +234,10 @@ export default function Cardapio() {
     const changeForNum = paymentMethod === "cash" && changeFor ? Number(changeFor.replace(",", ".")) : null;
     if (paymentMethod === "pix") {
       lines.push(paid ? `💸 *PIX PAGO E CONFIRMADO PELO BANCO* ✅` : `💸 *PIX — aguardando pagamento*`);
+    } else if (paymentMethod === "credit") {
+      lines.push(paid ? `💳 *CARTÃO DE CRÉDITO PAGO E CONFIRMADO* ✅` : `💳 *CARTÃO DE CRÉDITO — aguardando pagamento*`);
+    } else if (paymentMethod === "debit") {
+      lines.push(paid ? `💳 *CARTÃO DE DÉBITO PAGO E CONFIRMADO* ✅` : `💳 *CARTÃO DE DÉBITO — aguardando pagamento*`);
     } else if (paymentMethod === "cash") {
       lines.push(`💵 *PAGAMENTO: DINHEIRO NA ENTREGA*`);
       if (changeForNum) lines.push(`*Troco para:* ${formatBRL(changeForNum)} (levar ${formatBRL(changeForNum - total)})`);
