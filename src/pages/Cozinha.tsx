@@ -59,7 +59,17 @@ const statusMeta: Record<Status, { label: string; color: string; icon: any }> = 
   pending: { label: "Novo pedido", color: "bg-red-500/15 text-red-700 border-red-500/40", icon: Bell },
   accepted: { label: "Em preparo", color: "bg-blue-500/15 text-blue-700 border-blue-500/40", icon: ChefHat },
   completed: { label: "Faturado", color: "bg-emerald-500/15 text-emerald-700 border-emerald-500/40", icon: CheckCircle2 },
+  rejected: { label: "Cancelado", color: "bg-muted text-muted-foreground border-border", icon: Ban },
 };
+
+const filters: { key: Filter; label: string }[] = [
+  { key: "pending", label: "Pendentes" },
+  { key: "pending_payment", label: "Aguard. PIX" },
+  { key: "accepted", label: "Em preparo" },
+  { key: "completed", label: "Faturados" },
+  { key: "rejected", label: "Cancelados" },
+  { key: "all", label: "Todos" },
+];
 
 const filters: { key: Filter; label: string }[] = [
   { key: "pending", label: "Pendentes" },
