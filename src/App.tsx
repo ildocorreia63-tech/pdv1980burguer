@@ -20,6 +20,7 @@ import Cardapio from "./pages/Cardapio";
 import Insumos from "./pages/Insumos";
 import ListaCompras from "./pages/ListaCompras";
 import NotFound from "./pages/NotFound.tsx";
+import Acompanhar from "./pages/Acompanhar";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +45,7 @@ const App = () => (
           <AuthProvider>
             <Routes>
               <Route path="/cardapio" element={<Cardapio />} />
+              <Route path="/acompanhar/:orderId" element={<Acompanhar />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
