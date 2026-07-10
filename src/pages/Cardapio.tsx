@@ -712,7 +712,7 @@ export default function Cardapio() {
                 </div>
                 <Button
                   className="w-full h-12 font-display text-lg gap-2"
-                  onClick={() => { sendWhatsapp(pendingOrder.order_number, true); finishAndReset(pendingOrder.order_number); }}
+                  onClick={() => { sendWhatsapp(pendingOrder.order_number, true); finishAndReset(pendingOrder.order_number, pendingOrder.id); }}
                 >
                   <MessageCircle className="h-5 w-5" /> Enviar para o WhatsApp
                 </Button>
@@ -727,7 +727,14 @@ export default function Cardapio() {
         <DialogContent>
           <DialogHeader><DialogTitle>Pedido enviado! 🎉</DialogTitle></DialogHeader>
           <p className="text-sm">Seu pedido <strong>#{lastOrderNum}</strong> foi recebido pela loja. Continue a conversa pelo WhatsApp para combinar o pagamento.</p>
-          <Button onClick={() => setConfirmOpen(false)}>Fechar</Button>
+          <div className="flex flex-col gap-2 mt-2">
+            {lastOrderId && (
+              <Button asChild variant="default">
+                <a href={`/acompanhar/${lastOrderId}`} target="_blank" rel="noreferrer">Acompanhar meu pedido</a>
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Fechar</Button>
+          </div>
         </DialogContent>
       </Dialog>
 
