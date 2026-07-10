@@ -406,6 +406,8 @@ export default function Cardapio() {
         setCardInvoiceUrl(card.invoice_url);
         setPendingOrder({ id: order.id, order_number: order.order_number });
         setPixPaid(false);
+        setPayStatus("pending");
+        setPayFailReason(null);
         setPixOpen(true);
         // abre checkout hospedado em nova aba
         try { window.open(card.invoice_url, "_blank"); } catch { /* ignore */ }
