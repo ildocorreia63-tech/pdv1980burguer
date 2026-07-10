@@ -71,7 +71,7 @@ export default function Acompanhar() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
         <h1 className="font-display text-2xl mb-2">Pedido não encontrado</h1>
-        <p className="text-sm text-muted-foreground mb-4">O link pode ter expirado (pedidos ficam disponíveis por 7 dias).</p>
+        <p className="text-sm text-muted-foreground mb-4">O link pode ter expirado (pedidos ficam disponíveis por 30 dias).</p>
         <Button asChild><Link to="/cardapio">Voltar ao cardápio</Link></Button>
       </div>
     );
