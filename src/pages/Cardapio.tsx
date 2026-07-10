@@ -853,6 +853,19 @@ export default function Cardapio() {
                   >
                     <Copy className="h-4 w-4" /> Copiar link
                   </Button>
+                  <Button
+                    variant="secondary"
+                    className="w-full mt-2 gap-2"
+                    onClick={async () => {
+                      const text = `Link para pagamento — Pedido #${pendingOrder?.order_number ?? ""}\nValor: ${formatBRL(total)}\n\n${cardInvoiceUrl}`;
+                      try {
+                        if (navigator.share) await navigator.share({ title: "Pagamento com cartão", text, url: cardInvoiceUrl });
+                        else { await navigator.clipboard.writeText(text); toast.success("Link copiado para compartilhar"); }
+                      } catch { /* usuário cancelou */ }
+                    }}
+                  >
+                    <Share2 className="h-4 w-4" /> Compartilhar link
+                  </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground text-center">
                   Se a aba não abriu, use o botão ou copie o link. Após pagar, a confirmação chega automaticamente.
