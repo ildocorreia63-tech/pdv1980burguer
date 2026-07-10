@@ -83,6 +83,8 @@ export default function Cardapio() {
   const [pendingOrder, setPendingOrder] = useState<{ id: string; order_number: number } | null>(null);
   const [debugOpen, setDebugOpen] = useState(false);
   const [currentTrace, setCurrentTrace] = useState<string | undefined>(undefined);
+  const [payStatus, setPayStatus] = useState<"pending" | "confirmed" | "failed">("pending");
+  const [payFailReason, setPayFailReason] = useState<string | null>(null);
 
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -198,6 +200,7 @@ export default function Cardapio() {
         if (!cancelled && data?.paid) {
           logEvent(trace_id, scope, "paid", "Pagamento confirmado ✅");
           setPixPaid(true);
+          setPayStatus("confirmed");
           toast.success("Pagamento confirmado! ✅");
         }
       } catch (e: any) {
@@ -209,6 +212,29 @@ export default function Cardapio() {
     const id = setInterval(tick, 5000);
     return () => { cancelled = true; clearInterval(id); logEvent(trace_id, scope, "stop", "Polling encerrado"); };
   }, [pixOpen, pendingOrder, pixPaid, currentTrace]);
+
+  // Realtime: acompanhar status do pedido enquanto a tela de pagamento estiver aberta
+  useEffect(() => {
+    if (!pixOpen || !pendingOrder) return;
+    const channel = supabase
+      .channel(`online_order_${pendingOrder.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "online_orders", filter: `id=eq.${pendingOrder.id}` },
+        (payload) => {
+          const row = payload.new as any;
+          if (row.payment_confirmed_at) {
+            setPayStatus("confirmed");
+            setPixPaid(true);
+          } else if (row.status === "rejected" || row.cancelled_at) {
+            setPayStatus("failed");
+            setPayFailReason(row.cancellation_reason ?? "Pagamento não autorizado");
+          }
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [pixOpen, pendingOrder]);
 
   const buildWhatsappMessage = (orderNumber: number, paid: boolean) => {
     const lines: string[] = [];
@@ -362,6 +388,8 @@ export default function Cardapio() {
         setPendingOrder({ id: order.id, order_number: order.order_number });
         setPixPaid(false);
         setPixCopied(false);
+        setPayStatus("pending");
+        setPayFailReason(null);
         setPixOpen(true);
       } else if (paymentMethod === "credit" || paymentMethod === "debit") {
         stage = "asaas_create_card";
@@ -378,6 +406,8 @@ export default function Cardapio() {
         setCardInvoiceUrl(card.invoice_url);
         setPendingOrder({ id: order.id, order_number: order.order_number });
         setPixPaid(false);
+        setPayStatus("pending");
+        setPayFailReason(null);
         setPixOpen(true);
         // abre checkout hospedado em nova aba
         try { window.open(card.invoice_url, "_blank"); } catch { /* ignore */ }
@@ -707,6 +737,23 @@ export default function Cardapio() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {/* Status do pagamento em tempo real */}
+            <div
+              className={`rounded-md border p-2 text-center text-sm font-medium ${
+                payStatus === "confirmed"
+                  ? "bg-success/10 border-success/40 text-success"
+                  : payStatus === "failed"
+                  ? "bg-destructive/10 border-destructive/40 text-destructive"
+                  : "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400"
+              }`}
+              aria-live="polite"
+            >
+              {payStatus === "confirmed"
+                ? "✅ Pagamento confirmado"
+                : payStatus === "failed"
+                ? `❌ Falha no pagamento${payFailReason ? ` — ${payFailReason}` : ""}`
+                : "⏳ Aguardando pagamento (Pendente)"}
+            </div>
             {!pixPaid && payMode === "pix" && pixQrDataUrl && (
               <div className="rounded-lg bg-white p-3 flex items-center justify-center">
                 <img src={pixQrDataUrl} alt="QR Code PIX" className="w-full max-w-[260px] h-auto" />
