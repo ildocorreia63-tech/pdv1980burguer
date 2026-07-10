@@ -71,6 +71,7 @@ export default function Cardapio() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [lastOrderNum, setLastOrderNum] = useState<number | null>(null);
+  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [pixOpen, setPixOpen] = useState(false);
   const [pixPayload, setPixPayload] = useState("");
   const [pixQrDataUrl, setPixQrDataUrl] = useState("");
@@ -250,8 +251,9 @@ export default function Cardapio() {
     window.open(url, "_blank");
   };
 
-  const finishAndReset = (orderNumber: number) => {
+  const finishAndReset = (orderNumber: number, orderId?: string) => {
     setLastOrderNum(orderNumber);
+    if (orderId) setLastOrderId(orderId);
     setConfirmOpen(true);
     setPixOpen(false);
     setCheckoutOpen(false);
@@ -357,7 +359,7 @@ export default function Cardapio() {
       } else {
         logEvent(trace_id, scope, "whatsapp", "Abrindo WhatsApp (pagamento na entrega)");
         sendWhatsapp(order.order_number, false);
-        finishAndReset(order.order_number);
+        finishAndReset(order.order_number, order.id);
       }
     } catch (err: any) {
       logEvent(trace_id, scope, `${stage}:catch`, err?.message ?? "Erro desconhecido", "error", { name: err?.name, stack: err?.stack });
