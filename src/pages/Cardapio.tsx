@@ -200,6 +200,7 @@ export default function Cardapio() {
         if (!cancelled && data?.paid) {
           logEvent(trace_id, scope, "paid", "Pagamento confirmado ✅");
           setPixPaid(true);
+          setPayStatus("confirmed");
           toast.success("Pagamento confirmado! ✅");
         }
       } catch (e: any) {
@@ -211,6 +212,29 @@ export default function Cardapio() {
     const id = setInterval(tick, 5000);
     return () => { cancelled = true; clearInterval(id); logEvent(trace_id, scope, "stop", "Polling encerrado"); };
   }, [pixOpen, pendingOrder, pixPaid, currentTrace]);
+
+  // Realtime: acompanhar status do pedido enquanto a tela de pagamento estiver aberta
+  useEffect(() => {
+    if (!pixOpen || !pendingOrder) return;
+    const channel = supabase
+      .channel(`online_order_${pendingOrder.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "online_orders", filter: `id=eq.${pendingOrder.id}` },
+        (payload) => {
+          const row = payload.new as any;
+          if (row.payment_confirmed_at) {
+            setPayStatus("confirmed");
+            setPixPaid(true);
+          } else if (row.status === "rejected" || row.cancelled_at) {
+            setPayStatus("failed");
+            setPayFailReason(row.cancellation_reason ?? "Pagamento não autorizado");
+          }
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [pixOpen, pendingOrder]);
 
   const buildWhatsappMessage = (orderNumber: number, paid: boolean) => {
     const lines: string[] = [];
