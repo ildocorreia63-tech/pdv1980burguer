@@ -296,6 +296,13 @@ export default function Cozinha() {
                     <p className="mt-2 text-sm bg-muted/40 rounded p-2">📝 {o.notes}</p>
                   )}
 
+                  {o.status === "rejected" && (o as any).cancellation_reason && (
+                    <p className="mt-2 text-sm bg-destructive/10 text-destructive rounded p-2">
+                      <Ban className="inline h-4 w-4 mr-1" />
+                      Cancelado: {(o as any).cancellation_reason}
+                    </p>
+                  )}
+
                   <div className="mt-3 flex gap-2">
                     {o.status === "pending" && (
                       <Button className="flex-1" onClick={() => markAccepted(o)}>
@@ -307,6 +314,11 @@ export default function Cozinha() {
                         <CheckCircle2 className="h-4 w-4 mr-1" />Marcar como pronto
                       </Button>
                     )}
+                    {(o.status === "pending" || o.status === "pending_payment" || o.status === "accepted") && (
+                      <Button variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => openCancel(o)}>
+                        <XCircle className="h-4 w-4 mr-1" />Cancelar
+                      </Button>
+                    )}
                   </div>
                 </Card>
               );
@@ -314,6 +326,54 @@ export default function Cozinha() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!cancelTarget} onOpenChange={(v) => !v && setCancelTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar pedido #{cancelTarget?.order_number}</DialogTitle>
+            <DialogDescription>
+              O cliente será notificado em tempo real na tela de acompanhamento.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Motivo</Label>
+              <div className="mt-2 space-y-1">
+                {CANCEL_REASONS.map((r) => (
+                  <label key={r} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="radio"
+                      name="cancel-reason"
+                      value={r}
+                      checked={cancelReason === r}
+                      onChange={() => setCancelReason(r)}
+                    />
+                    {r}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="cancel-details">Detalhes (opcional)</Label>
+              <Textarea
+                id="cancel-details"
+                value={cancelDetails}
+                onChange={(e) => setCancelDetails(e.target.value.slice(0, 300))}
+                placeholder="Ex.: hambúrguer artesanal esgotou"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={cancelling}>
+              Voltar
+            </Button>
+            <Button variant="destructive" onClick={confirmCancel} disabled={cancelling}>
+              {cancelling ? "Cancelando..." : "Confirmar cancelamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
