@@ -703,11 +703,11 @@ export default function Cardapio() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">
-              {pixPaid ? "Pagamento confirmado ✅" : "Pague com PIX"}
+              {pixPaid ? "Pagamento confirmado ✅" : payMode === "card" ? "Pagar com cartão" : "Pague com PIX"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            {!pixPaid && pixQrDataUrl && (
+            {!pixPaid && payMode === "pix" && pixQrDataUrl && (
               <div className="rounded-lg bg-white p-3 flex items-center justify-center">
                 <img src={pixQrDataUrl} alt="QR Code PIX" className="w-full max-w-[260px] h-auto" />
               </div>
@@ -718,7 +718,7 @@ export default function Cardapio() {
               {pendingOrder && <p className="text-[11px] text-muted-foreground mt-1">Pedido #{pendingOrder.order_number}</p>}
             </div>
 
-            {!pixPaid && (
+            {!pixPaid && payMode === "pix" && (
               <>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">PIX Copia e Cola</p>
@@ -735,6 +735,25 @@ export default function Cardapio() {
                     <Download className="h-4 w-4" /> Baixar QR
                   </Button>
                 </div>
+                <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-center">
+                  <p className="text-xs">
+                    {pixChecking ? "🔄 Verificando pagamento..." : "⏳ Aguardando pagamento (verifica a cada 5s)"}
+                  </p>
+                </div>
+              </>
+            )}
+
+            {!pixPaid && payMode === "card" && (
+              <>
+                <Button
+                  className="w-full h-12 font-display text-base gap-2"
+                  onClick={() => cardInvoiceUrl && window.open(cardInvoiceUrl, "_blank")}
+                >
+                  <ExternalLink className="h-5 w-5" /> Abrir checkout do cartão
+                </Button>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Se a aba não abriu, clique no botão acima. Após pagar, a confirmação chega automaticamente.
+                </p>
                 <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-center">
                   <p className="text-xs">
                     {pixChecking ? "🔄 Verificando pagamento..." : "⏳ Aguardando pagamento (verifica a cada 5s)"}
