@@ -129,6 +129,7 @@ export default function Cozinha() {
     pending_payment: orders.filter((o) => o.status === "pending_payment").length,
     accepted: orders.filter((o) => o.status === "accepted").length,
     completed: orders.filter((o) => o.status === "completed").length,
+    rejected: orders.filter((o) => o.status === "rejected").length,
     all: orders.length,
   }), [orders]);
 
@@ -154,6 +155,39 @@ export default function Cozinha() {
     if (error) return toast.error("Erro ao concluir");
     toast.success(`Pedido #${o.order_number} concluído`);
   };
+
+  const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>(CANCEL_REASONS[0]);
+  const [cancelDetails, setCancelDetails] = useState("");
+  const [cancelling, setCancelling] = useState(false);
+
+  const openCancel = (o: Order) => {
+    setCancelTarget(o);
+    setCancelReason(CANCEL_REASONS[0]);
+    setCancelDetails("");
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    const reasonText = cancelDetails.trim()
+      ? `${cancelReason} — ${cancelDetails.trim()}`
+      : cancelReason;
+    setCancelling(true);
+    const { data: userRes } = await supabase.auth.getUser();
+    const { error } = await supabase.from("online_orders")
+      .update({
+        status: "rejected",
+        cancellation_reason: reasonText,
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: userRes.user?.id ?? null,
+      })
+      .eq("id", cancelTarget.id);
+    setCancelling(false);
+    if (error) return toast.error("Erro ao cancelar: " + error.message);
+    toast.success(`Pedido #${cancelTarget.order_number} cancelado`);
+    setCancelTarget(null);
+  };
+
 
   return (
     <AppShell
