@@ -39,36 +39,24 @@ export default function Acompanhar() {
   useEffect(() => {
     if (!orderId) return;
     let mounted = true;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
 
     const load = async () => {
-      const { data, error } = await supabase
-        .from("online_orders")
-        .select("id, order_number, customer_name, status, payment_method, payment_confirmed_at, accepted_at, accepted_by, sale_id, total, subtotal, delivery_fee, order_type, created_at, cancellation_reason, cancelled_at")
-        .eq("id", orderId)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("get_online_order", { _id: orderId });
       if (!mounted) return;
       if (error || !data) { setNotFound(true); setLoading(false); return; }
-      setOrder(data as Order);
-
-      const { data: its } = await supabase
-        .from("online_order_items")
-        .select("id, product_name, quantity, subtotal")
-        .eq("online_order_id", orderId);
-      if (mounted) setItems((its as Item[]) ?? []);
+      const payload = data as { order: Order; items: Item[] } | null;
+      if (!payload?.order) { setNotFound(true); setLoading(false); return; }
+      setOrder(payload.order);
+      setItems(payload.items ?? []);
       setLoading(false);
     };
 
     load();
+    // Polling seguro (substitui realtime, que exigia SELECT público na tabela)
+    intervalId = setInterval(load, 5000);
 
-    const channel = supabase
-      .channel(`order-${orderId}`)
-      .on("postgres_changes",
-        { event: "UPDATE", schema: "public", table: "online_orders", filter: `id=eq.${orderId}` },
-        (payload) => { setOrder(payload.new as Order); }
-      )
-      .subscribe();
-
-    return () => { mounted = false; supabase.removeChannel(channel); };
+    return () => { mounted = false; if (intervalId) clearInterval(intervalId); };
   }, [orderId]);
 
   if (loading) {

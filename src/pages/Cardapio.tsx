@@ -213,42 +213,42 @@ export default function Cardapio() {
     return () => { cancelled = true; clearInterval(id); logEvent(trace_id, scope, "stop", "Polling encerrado"); };
   }, [pixOpen, pendingOrder, pixPaid, currentTrace]);
 
-  // Realtime: acompanhar status do pedido enquanto a tela de pagamento estiver aberta
+  // Polling seguro (substitui realtime — RLS agora exige RPC por id)
   useEffect(() => {
     if (!pixOpen || !pendingOrder) return;
-    const channel = supabase
-      .channel(`online_order_${pendingOrder.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "online_orders", filter: `id=eq.${pendingOrder.id}` },
-        (payload) => {
-          const row = payload.new as any;
-          if (row.payment_confirmed_at) {
-            setPayStatus((prev) => {
-              if (prev !== "confirmed") {
-                toast.success("Pagamento confirmado! ✅", {
-                  description: "Redirecionando para o acompanhamento...",
-                });
-                setTimeout(() => {
-                  window.location.href = `/acompanhar/${pendingOrder.id}`;
-                }, 1500);
-              }
-              return "confirmed";
+    let cancelled = false;
+    const check = async () => {
+      const { data } = await supabase.rpc("get_online_order_status", { _id: pendingOrder.id });
+      if (cancelled || !data) return;
+      const row = data as any;
+      if (row.payment_confirmed_at) {
+        setPayStatus((prev) => {
+          if (prev !== "confirmed") {
+            toast.success("Pagamento confirmado! ✅", {
+              description: "Redirecionando para o acompanhamento...",
             });
-            setPixPaid(true);
-          } else if (row.status === "rejected" || row.cancelled_at) {
-            const reason = row.cancellation_reason ?? "Pagamento não autorizado";
-            setPayStatus((prev) => {
-              if (prev !== "failed") toast.error("Pagamento recusado", { description: reason });
-              return "failed";
-            });
-            setPayFailReason(reason);
+            setTimeout(() => {
+              window.location.href = `/acompanhar/${pendingOrder.id}`;
+            }, 1500);
           }
-        },
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+          return "confirmed";
+        });
+        setPixPaid(true);
+      } else if (row.status === "rejected" || row.cancelled_at) {
+        const reason = row.cancellation_reason ?? "Pagamento não autorizado";
+        setPayStatus((prev) => {
+          if (prev !== "failed") toast.error("Pagamento recusado", { description: reason });
+          return "failed";
+        });
+        setPayFailReason(reason);
+      }
+    };
+    check();
+    const id = setInterval(check, 4000);
+    return () => { cancelled = true; clearInterval(id); };
   }, [pixOpen, pendingOrder]);
+
+
 
   const buildWhatsappMessage = (orderNumber: number, paid: boolean) => {
     const lines: string[] = [];

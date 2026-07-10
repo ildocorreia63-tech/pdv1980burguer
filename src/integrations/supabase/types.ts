@@ -718,6 +718,8 @@ export type Database = {
       }
     }
     Functions: {
+      get_online_order: { Args: { _id: string }; Returns: Json }
+      get_online_order_status: { Args: { _id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
