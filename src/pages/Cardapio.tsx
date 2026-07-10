@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check, Bug } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check, Bug, CreditCard, ExternalLink } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -47,7 +47,7 @@ export default function Cardapio() {
     zoneId: string;
     street: string; number: string; complement: string; reference: string;
     notes: string;
-    paymentMethod: "cash" | "pix" | "card_delivery";
+    paymentMethod: "cash" | "pix" | "credit" | "debit" | "card_delivery";
     changeFor: string;
   };
   const defaultCheckout: CheckoutData = {
@@ -66,7 +66,7 @@ export default function Cardapio() {
   const setComplement = (v: string) => setCheckout((c) => ({ ...c, complement: v }));
   const setReference = (v: string) => setCheckout((c) => ({ ...c, reference: v }));
   const setNotes = (v: string) => setCheckout((c) => ({ ...c, notes: v }));
-  const setPaymentMethod = (v: "cash" | "pix" | "card_delivery") => setCheckout((c) => ({ ...c, paymentMethod: v }));
+  const setPaymentMethod = (v: CheckoutData["paymentMethod"]) => setCheckout((c) => ({ ...c, paymentMethod: v }));
   const setChangeFor = (v: string) => setCheckout((c) => ({ ...c, changeFor: v }));
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -78,6 +78,8 @@ export default function Cardapio() {
   const [pixCopied, setPixCopied] = useState(false);
   const [pixPaid, setPixPaid] = useState(false);
   const [pixChecking, setPixChecking] = useState(false);
+  const [payMode, setPayMode] = useState<"pix" | "card">("pix");
+  const [cardInvoiceUrl, setCardInvoiceUrl] = useState("");
   const [pendingOrder, setPendingOrder] = useState<{ id: string; order_number: number } | null>(null);
   const [debugOpen, setDebugOpen] = useState(false);
   const [currentTrace, setCurrentTrace] = useState<string | undefined>(undefined);
@@ -157,7 +159,7 @@ export default function Cardapio() {
   const deliveryFee = orderType === "delivery" ? (selectedZone?.fee ?? 0) : 0;
   const total = subtotal + deliveryFee;
 
-  const paymentLabel = (m: string) => m === "cash" ? "Dinheiro" : m === "pix" ? "PIX" : "Cartão na entrega";
+  const paymentLabel = (m: string) => m === "cash" ? "Dinheiro" : m === "pix" ? "PIX" : m === "credit" ? "Crédito" : m === "debit" ? "Débito" : "Cartão na entrega";
 
   const copyPix = async () => {
     try {
@@ -232,6 +234,10 @@ export default function Cardapio() {
     const changeForNum = paymentMethod === "cash" && changeFor ? Number(changeFor.replace(",", ".")) : null;
     if (paymentMethod === "pix") {
       lines.push(paid ? `💸 *PIX PAGO E CONFIRMADO PELO BANCO* ✅` : `💸 *PIX — aguardando pagamento*`);
+    } else if (paymentMethod === "credit") {
+      lines.push(paid ? `💳 *CARTÃO DE CRÉDITO PAGO E CONFIRMADO* ✅` : `💳 *CARTÃO DE CRÉDITO — aguardando pagamento*`);
+    } else if (paymentMethod === "debit") {
+      lines.push(paid ? `💳 *CARTÃO DE DÉBITO PAGO E CONFIRMADO* ✅` : `💳 *CARTÃO DE DÉBITO — aguardando pagamento*`);
     } else if (paymentMethod === "cash") {
       lines.push(`💵 *PAGAMENTO: DINHEIRO NA ENTREGA*`);
       if (changeForNum) lines.push(`*Troco para:* ${formatBRL(changeForNum)} (levar ${formatBRL(changeForNum - total)})`);
@@ -262,7 +268,7 @@ export default function Cardapio() {
     setCheckout(defaultCheckout);
     clearPersistentState(CART_KEY);
     clearPersistentState(CHECKOUT_KEY);
-    setPendingOrder(null); setPixPaid(false); setPixPayload(""); setPixQrDataUrl("");
+    setPendingOrder(null); setPixPaid(false); setPixPayload(""); setPixQrDataUrl(""); setCardInvoiceUrl("");
   };
 
   const submitOrder = async () => {
@@ -312,7 +318,7 @@ export default function Cardapio() {
           notes: notes.trim() || null,
           payment_method: paymentMethod,
           payment_change_for: changeForNum,
-          status: paymentMethod === "pix" ? "pending_payment" : "pending",
+          status: (paymentMethod === "pix" || paymentMethod === "credit" || paymentMethod === "debit") ? "pending_payment" : "pending",
         } as any)
         .select("id, order_number")
         .single();
@@ -350,12 +356,31 @@ export default function Cardapio() {
           throw new Error(pix?.error || pixErr?.message || "Erro ao gerar PIX");
         }
         logEvent(trace_id, scope, stage, "PIX gerado", "info", { payment_id: pix.payment_id, has_qr: !!pix.qr_code, remote_trace: pix.trace_id });
+        setPayMode("pix");
         setPixPayload(pix.payload);
         setPixQrDataUrl(`data:image/png;base64,${pix.qr_code}`);
         setPendingOrder({ id: order.id, order_number: order.order_number });
         setPixPaid(false);
         setPixCopied(false);
         setPixOpen(true);
+      } else if (paymentMethod === "credit" || paymentMethod === "debit") {
+        stage = "asaas_create_card";
+        logEvent(trace_id, scope, stage, "Chamando edge function asaas-create-card", "info", { order_id: order.id, kind: paymentMethod });
+        const { data: card, error: cardErr } = await supabase.functions.invoke("asaas-create-card", {
+          body: { order_id: order.id, kind: paymentMethod, trace_id },
+        });
+        if (cardErr || card?.error) {
+          logEvent(trace_id, scope, stage, "Falha ao gerar cobrança cartão", "error", { cardErr: cardErr?.message, cardError: card?.error, remote_trace: card?.trace_id });
+          throw new Error(card?.error || cardErr?.message || "Erro ao gerar cobrança em cartão");
+        }
+        logEvent(trace_id, scope, stage, "Cobrança cartão criada", "info", { payment_id: card.payment_id, remote_trace: card.trace_id });
+        setPayMode("card");
+        setCardInvoiceUrl(card.invoice_url);
+        setPendingOrder({ id: order.id, order_number: order.order_number });
+        setPixPaid(false);
+        setPixOpen(true);
+        // abre checkout hospedado em nova aba
+        try { window.open(card.invoice_url, "_blank"); } catch { /* ignore */ }
       } else {
         logEvent(trace_id, scope, "whatsapp", "Abrindo WhatsApp (pagamento na entrega)");
         sendWhatsapp(order.order_number, false);
@@ -603,8 +628,10 @@ export default function Cardapio() {
               <div className="grid grid-cols-3 gap-2">
                 {([
                   { v: "pix", label: "PIX", icon: "💸" },
+                  { v: "credit", label: "Crédito", icon: "💳" },
+                  { v: "debit", label: "Débito", icon: "🏧" },
                   { v: "cash", label: "Dinheiro", icon: "💵" },
-                  { v: "card_delivery", label: "Cartão", icon: "💳" },
+                  { v: "card_delivery", label: "Cartão entrega", icon: "🛵" },
                 ] as const).map((opt) => (
                   <button
                     key={opt.v}
@@ -616,7 +643,7 @@ export default function Cardapio() {
                     )}
                   >
                     <span className="text-lg leading-none">{opt.icon}</span>
-                    <span className="font-display text-xs">{opt.label}</span>
+                    <span className="font-display text-[11px] text-center leading-tight">{opt.label}</span>
                   </button>
                 ))}
               </div>
@@ -639,6 +666,13 @@ export default function Cardapio() {
                   </p>
                 </div>
               )}
+              {(paymentMethod === "credit" || paymentMethod === "debit") && (
+                <div className="rounded-md bg-primary/5 border border-primary/20 p-2 space-y-1">
+                  <p className="text-[11px] text-muted-foreground">
+                    💡 Após enviar, abrimos o checkout seguro para você pagar com {paymentMethod === "credit" ? "cartão de crédito" : "cartão de débito"}. <strong>A confirmação é automática</strong> e o pedido segue para o WhatsApp.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="rounded-lg bg-muted/50 p-3 space-y-1 text-sm">
@@ -648,11 +682,15 @@ export default function Cardapio() {
             </div>
 
             <Button className="w-full h-12 font-display text-lg gap-2" onClick={submitOrder} disabled={submitting}>
-              {paymentMethod === "pix" ? <><QrCode className="h-5 w-5" /> Gerar PIX e enviar</> : <><MessageCircle className="h-5 w-5" /> Enviar pedido pelo WhatsApp</>}
+              {paymentMethod === "pix" ? <><QrCode className="h-5 w-5" /> Gerar PIX e enviar</>
+                : (paymentMethod === "credit" || paymentMethod === "debit") ? <><CreditCard className="h-5 w-5" /> Pagar com cartão</>
+                : <><MessageCircle className="h-5 w-5" /> Enviar pedido pelo WhatsApp</>}
             </Button>
             <p className="text-[11px] text-muted-foreground text-center">
               {paymentMethod === "pix"
                 ? "Pague o PIX para o pedido seguir automaticamente para o WhatsApp."
+                : (paymentMethod === "credit" || paymentMethod === "debit")
+                ? "Abriremos um checkout seguro para o pagamento."
                 : "Confirme detalhes do pagamento na conversa do WhatsApp."}
             </p>
           </div>
@@ -665,11 +703,11 @@ export default function Cardapio() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">
-              {pixPaid ? "Pagamento confirmado ✅" : "Pague com PIX"}
+              {pixPaid ? "Pagamento confirmado ✅" : payMode === "card" ? "Pagar com cartão" : "Pague com PIX"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            {!pixPaid && pixQrDataUrl && (
+            {!pixPaid && payMode === "pix" && pixQrDataUrl && (
               <div className="rounded-lg bg-white p-3 flex items-center justify-center">
                 <img src={pixQrDataUrl} alt="QR Code PIX" className="w-full max-w-[260px] h-auto" />
               </div>
@@ -680,7 +718,7 @@ export default function Cardapio() {
               {pendingOrder && <p className="text-[11px] text-muted-foreground mt-1">Pedido #{pendingOrder.order_number}</p>}
             </div>
 
-            {!pixPaid && (
+            {!pixPaid && payMode === "pix" && (
               <>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">PIX Copia e Cola</p>
@@ -697,6 +735,25 @@ export default function Cardapio() {
                     <Download className="h-4 w-4" /> Baixar QR
                   </Button>
                 </div>
+                <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-center">
+                  <p className="text-xs">
+                    {pixChecking ? "🔄 Verificando pagamento..." : "⏳ Aguardando pagamento (verifica a cada 5s)"}
+                  </p>
+                </div>
+              </>
+            )}
+
+            {!pixPaid && payMode === "card" && (
+              <>
+                <Button
+                  className="w-full h-12 font-display text-base gap-2"
+                  onClick={() => cardInvoiceUrl && window.open(cardInvoiceUrl, "_blank")}
+                >
+                  <ExternalLink className="h-5 w-5" /> Abrir checkout do cartão
+                </Button>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Se a aba não abriu, clique no botão acima. Após pagar, a confirmação chega automaticamente.
+                </p>
                 <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-center">
                   <p className="text-xs">
                     {pixChecking ? "🔄 Verificando pagamento..." : "⏳ Aguardando pagamento (verifica a cada 5s)"}
