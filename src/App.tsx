@@ -21,6 +21,7 @@ import Insumos from "./pages/Insumos";
 import ListaCompras from "./pages/ListaCompras";
 import NotFound from "./pages/NotFound.tsx";
 import Acompanhar from "./pages/Acompanhar";
+import Cozinha from "./pages/Cozinha";
 
 const queryClient = new QueryClient({
   defaultOptions: {
