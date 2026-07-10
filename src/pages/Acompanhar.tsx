@@ -41,7 +41,7 @@ export default function Acompanhar() {
     const load = async () => {
       const { data, error } = await supabase
         .from("online_orders")
-        .select("id, order_number, customer_name, status, payment_method, payment_confirmed_at, accepted_at, accepted_by, sale_id, total, subtotal, delivery_fee, order_type, created_at")
+        .select("id, order_number, customer_name, status, payment_method, payment_confirmed_at, accepted_at, accepted_by, sale_id, total, subtotal, delivery_fee, order_type, created_at, cancellation_reason, cancelled_at")
         .eq("id", orderId)
         .maybeSingle();
       if (!mounted) return;
