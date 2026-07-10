@@ -628,8 +628,10 @@ export default function Cardapio() {
               <div className="grid grid-cols-3 gap-2">
                 {([
                   { v: "pix", label: "PIX", icon: "💸" },
+                  { v: "credit", label: "Crédito", icon: "💳" },
+                  { v: "debit", label: "Débito", icon: "🏧" },
                   { v: "cash", label: "Dinheiro", icon: "💵" },
-                  { v: "card_delivery", label: "Cartão", icon: "💳" },
+                  { v: "card_delivery", label: "Cartão entrega", icon: "🛵" },
                 ] as const).map((opt) => (
                   <button
                     key={opt.v}
@@ -641,7 +643,7 @@ export default function Cardapio() {
                     )}
                   >
                     <span className="text-lg leading-none">{opt.icon}</span>
-                    <span className="font-display text-xs">{opt.label}</span>
+                    <span className="font-display text-[11px] text-center leading-tight">{opt.label}</span>
                   </button>
                 ))}
               </div>
@@ -661,6 +663,13 @@ export default function Cardapio() {
                 <div className="rounded-md bg-primary/5 border border-primary/20 p-2 space-y-1">
                   <p className="text-[11px] text-muted-foreground">
                     💡 Após enviar, geramos um QR Code PIX. <strong>O pagamento é confirmado automaticamente pelo banco</strong> e o pedido segue para o WhatsApp.
+                  </p>
+                </div>
+              )}
+              {(paymentMethod === "credit" || paymentMethod === "debit") && (
+                <div className="rounded-md bg-primary/5 border border-primary/20 p-2 space-y-1">
+                  <p className="text-[11px] text-muted-foreground">
+                    💡 Após enviar, abrimos o checkout seguro para você pagar com {paymentMethod === "credit" ? "cartão de crédito" : "cartão de débito"}. <strong>A confirmação é automática</strong> e o pedido segue para o WhatsApp.
                   </p>
                 </div>
               )}
