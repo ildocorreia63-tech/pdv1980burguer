@@ -21,6 +21,8 @@ type Order = {
   delivery_fee: number;
   order_type: string;
   created_at: string;
+  cancellation_reason: string | null;
+  cancelled_at: string | null;
 };
 
 type Item = { id: string; product_name: string; quantity: number; subtotal: number };
