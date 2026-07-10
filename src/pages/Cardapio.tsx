@@ -71,6 +71,7 @@ export default function Cardapio() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [lastOrderNum, setLastOrderNum] = useState<number | null>(null);
+  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [pixOpen, setPixOpen] = useState(false);
   const [pixPayload, setPixPayload] = useState("");
   const [pixQrDataUrl, setPixQrDataUrl] = useState("");
@@ -250,8 +251,9 @@ export default function Cardapio() {
     window.open(url, "_blank");
   };
 
-  const finishAndReset = (orderNumber: number) => {
+  const finishAndReset = (orderNumber: number, orderId?: string) => {
     setLastOrderNum(orderNumber);
+    if (orderId) setLastOrderId(orderId);
     setConfirmOpen(true);
     setPixOpen(false);
     setCheckoutOpen(false);
@@ -357,7 +359,7 @@ export default function Cardapio() {
       } else {
         logEvent(trace_id, scope, "whatsapp", "Abrindo WhatsApp (pagamento na entrega)");
         sendWhatsapp(order.order_number, false);
-        finishAndReset(order.order_number);
+        finishAndReset(order.order_number, order.id);
       }
     } catch (err: any) {
       logEvent(trace_id, scope, `${stage}:catch`, err?.message ?? "Erro desconhecido", "error", { name: err?.name, stack: err?.stack });
@@ -710,7 +712,7 @@ export default function Cardapio() {
                 </div>
                 <Button
                   className="w-full h-12 font-display text-lg gap-2"
-                  onClick={() => { sendWhatsapp(pendingOrder.order_number, true); finishAndReset(pendingOrder.order_number); }}
+                  onClick={() => { sendWhatsapp(pendingOrder.order_number, true); finishAndReset(pendingOrder.order_number, pendingOrder.id); }}
                 >
                   <MessageCircle className="h-5 w-5" /> Enviar para o WhatsApp
                 </Button>
@@ -725,7 +727,14 @@ export default function Cardapio() {
         <DialogContent>
           <DialogHeader><DialogTitle>Pedido enviado! 🎉</DialogTitle></DialogHeader>
           <p className="text-sm">Seu pedido <strong>#{lastOrderNum}</strong> foi recebido pela loja. Continue a conversa pelo WhatsApp para combinar o pagamento.</p>
-          <Button onClick={() => setConfirmOpen(false)}>Fechar</Button>
+          <div className="flex flex-col gap-2 mt-2">
+            {lastOrderId && (
+              <Button asChild variant="default">
+                <a href={`/acompanhar/${lastOrderId}`} target="_blank" rel="noreferrer">Acompanhar meu pedido</a>
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Fechar</Button>
+          </div>
         </DialogContent>
       </Dialog>
 
