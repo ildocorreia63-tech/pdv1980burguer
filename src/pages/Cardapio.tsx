@@ -47,7 +47,7 @@ export default function Cardapio() {
     zoneId: string;
     street: string; number: string; complement: string; reference: string;
     notes: string;
-    paymentMethod: "cash" | "pix" | "card_delivery";
+    paymentMethod: "cash" | "pix" | "credit" | "debit" | "card_delivery";
     changeFor: string;
   };
   const defaultCheckout: CheckoutData = {
@@ -66,7 +66,7 @@ export default function Cardapio() {
   const setComplement = (v: string) => setCheckout((c) => ({ ...c, complement: v }));
   const setReference = (v: string) => setCheckout((c) => ({ ...c, reference: v }));
   const setNotes = (v: string) => setCheckout((c) => ({ ...c, notes: v }));
-  const setPaymentMethod = (v: "cash" | "pix" | "card_delivery") => setCheckout((c) => ({ ...c, paymentMethod: v }));
+  const setPaymentMethod = (v: CheckoutData["paymentMethod"]) => setCheckout((c) => ({ ...c, paymentMethod: v }));
   const setChangeFor = (v: string) => setCheckout((c) => ({ ...c, changeFor: v }));
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
