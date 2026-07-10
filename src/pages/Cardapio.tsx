@@ -159,7 +159,7 @@ export default function Cardapio() {
   const deliveryFee = orderType === "delivery" ? (selectedZone?.fee ?? 0) : 0;
   const total = subtotal + deliveryFee;
 
-  const paymentLabel = (m: string) => m === "cash" ? "Dinheiro" : m === "pix" ? "PIX" : "Cartão na entrega";
+  const paymentLabel = (m: string) => m === "cash" ? "Dinheiro" : m === "pix" ? "PIX" : m === "credit" ? "Crédito" : m === "debit" ? "Débito" : "Cartão na entrega";
 
   const copyPix = async () => {
     try {
