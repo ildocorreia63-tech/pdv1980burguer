@@ -768,6 +768,15 @@ export default function Cardapio() {
                 ? `❌ Falha no pagamento${payFailReason ? ` — ${payFailReason}` : ""}`
                 : "⏳ Aguardando pagamento (Pendente)"}
             </div>
+            {(payStatus === "confirmed" || payStatus === "failed") && pendingOrder && (
+              <Button
+                className="w-full"
+                variant={payStatus === "confirmed" ? "default" : "outline"}
+                onClick={() => { window.location.href = `/acompanhar/${pendingOrder.id}`; }}
+              >
+                Ir para finalização
+              </Button>
+            )}
             {!pixPaid && payMode === "pix" && pixQrDataUrl && (
               <div className="rounded-lg bg-white p-3 flex items-center justify-center">
                 <img src={pixQrDataUrl} alt="QR Code PIX" className="w-full max-w-[260px] h-auto" />
