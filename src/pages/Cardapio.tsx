@@ -78,6 +78,8 @@ export default function Cardapio() {
   const [pixCopied, setPixCopied] = useState(false);
   const [pixPaid, setPixPaid] = useState(false);
   const [pixChecking, setPixChecking] = useState(false);
+  const [payMode, setPayMode] = useState<"pix" | "card">("pix");
+  const [cardInvoiceUrl, setCardInvoiceUrl] = useState("");
   const [pendingOrder, setPendingOrder] = useState<{ id: string; order_number: number } | null>(null);
   const [debugOpen, setDebugOpen] = useState(false);
   const [currentTrace, setCurrentTrace] = useState<string | undefined>(undefined);
