@@ -737,6 +737,23 @@ export default function Cardapio() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {/* Status do pagamento em tempo real */}
+            <div
+              className={`rounded-md border p-2 text-center text-sm font-medium ${
+                payStatus === "confirmed"
+                  ? "bg-success/10 border-success/40 text-success"
+                  : payStatus === "failed"
+                  ? "bg-destructive/10 border-destructive/40 text-destructive"
+                  : "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400"
+              }`}
+              aria-live="polite"
+            >
+              {payStatus === "confirmed"
+                ? "✅ Pagamento confirmado"
+                : payStatus === "failed"
+                ? `❌ Falha no pagamento${payFailReason ? ` — ${payFailReason}` : ""}`
+                : "⏳ Aguardando pagamento (Pendente)"}
+            </div>
             {!pixPaid && payMode === "pix" && pixQrDataUrl && (
               <div className="rounded-lg bg-white p-3 flex items-center justify-center">
                 <img src={pixQrDataUrl} alt="QR Code PIX" className="w-full max-w-[260px] h-auto" />
