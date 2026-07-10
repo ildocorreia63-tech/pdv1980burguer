@@ -5,12 +5,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Bell, Search, Clock, CheckCircle2, ChefHat, Receipt, Bike, ShoppingBag } from "lucide-react";
+import { Bell, Search, Clock, CheckCircle2, ChefHat, Receipt, Bike, ShoppingBag, XCircle, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Status = "pending_payment" | "pending" | "accepted" | "completed";
+type Status = "pending_payment" | "pending" | "accepted" | "completed" | "rejected";
 type Filter = Status | "all";
+
+const CANCEL_REASONS = [
+  "Loja fechada / fora do horário",
+  "Produto sem estoque",
+  "Fora da área de entrega",
+  "Cliente não confirmou / não atende",
+  "Pagamento não identificado",
+  "Outro motivo",
+];
 
 type Item = { product_name: string; quantity: number; subtotal: number; unit_price: number };
 type Order = {
