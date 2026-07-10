@@ -261,6 +261,9 @@ export type Database = {
           address_street: string | null
           asaas_invoice_url: string | null
           asaas_payment_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
           customer_name: string
           customer_phone: string
@@ -289,6 +292,9 @@ export type Database = {
           address_street?: string | null
           asaas_invoice_url?: string | null
           asaas_payment_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           customer_name: string
           customer_phone: string
@@ -317,6 +323,9 @@ export type Database = {
           address_street?: string | null
           asaas_invoice_url?: string | null
           asaas_payment_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           customer_name?: string
           customer_phone?: string

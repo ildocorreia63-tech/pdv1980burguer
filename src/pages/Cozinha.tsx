@@ -5,12 +5,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Bell, Search, Clock, CheckCircle2, ChefHat, Receipt, Bike, ShoppingBag } from "lucide-react";
+import { Bell, Search, Clock, CheckCircle2, ChefHat, Receipt, Bike, ShoppingBag, XCircle, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Status = "pending_payment" | "pending" | "accepted" | "completed";
+type Status = "pending_payment" | "pending" | "accepted" | "completed" | "rejected";
 type Filter = Status | "all";
+
+const CANCEL_REASONS = [
+  "Loja fechada / fora do horário",
+  "Produto sem estoque",
+  "Fora da área de entrega",
+  "Cliente não confirmou / não atende",
+  "Pagamento não identificado",
+  "Outro motivo",
+];
 
 type Item = { product_name: string; quantity: number; subtotal: number; unit_price: number };
 type Order = {
@@ -47,6 +59,7 @@ const statusMeta: Record<Status, { label: string; color: string; icon: any }> = 
   pending: { label: "Novo pedido", color: "bg-red-500/15 text-red-700 border-red-500/40", icon: Bell },
   accepted: { label: "Em preparo", color: "bg-blue-500/15 text-blue-700 border-blue-500/40", icon: ChefHat },
   completed: { label: "Faturado", color: "bg-emerald-500/15 text-emerald-700 border-emerald-500/40", icon: CheckCircle2 },
+  rejected: { label: "Cancelado", color: "bg-muted text-muted-foreground border-border", icon: Ban },
 };
 
 const filters: { key: Filter; label: string }[] = [
@@ -54,8 +67,10 @@ const filters: { key: Filter; label: string }[] = [
   { key: "pending_payment", label: "Aguard. PIX" },
   { key: "accepted", label: "Em preparo" },
   { key: "completed", label: "Faturados" },
+  { key: "rejected", label: "Cancelados" },
   { key: "all", label: "Todos" },
 ];
+
 
 export default function Cozinha() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -114,6 +129,7 @@ export default function Cozinha() {
     pending_payment: orders.filter((o) => o.status === "pending_payment").length,
     accepted: orders.filter((o) => o.status === "accepted").length,
     completed: orders.filter((o) => o.status === "completed").length,
+    rejected: orders.filter((o) => o.status === "rejected").length,
     all: orders.length,
   }), [orders]);
 
@@ -139,6 +155,39 @@ export default function Cozinha() {
     if (error) return toast.error("Erro ao concluir");
     toast.success(`Pedido #${o.order_number} concluído`);
   };
+
+  const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>(CANCEL_REASONS[0]);
+  const [cancelDetails, setCancelDetails] = useState("");
+  const [cancelling, setCancelling] = useState(false);
+
+  const openCancel = (o: Order) => {
+    setCancelTarget(o);
+    setCancelReason(CANCEL_REASONS[0]);
+    setCancelDetails("");
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    const reasonText = cancelDetails.trim()
+      ? `${cancelReason} — ${cancelDetails.trim()}`
+      : cancelReason;
+    setCancelling(true);
+    const { data: userRes } = await supabase.auth.getUser();
+    const { error } = await supabase.from("online_orders")
+      .update({
+        status: "rejected",
+        cancellation_reason: reasonText,
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: userRes.user?.id ?? null,
+      })
+      .eq("id", cancelTarget.id);
+    setCancelling(false);
+    if (error) return toast.error("Erro ao cancelar: " + error.message);
+    toast.success(`Pedido #${cancelTarget.order_number} cancelado`);
+    setCancelTarget(null);
+  };
+
 
   return (
     <AppShell
@@ -247,6 +296,13 @@ export default function Cozinha() {
                     <p className="mt-2 text-sm bg-muted/40 rounded p-2">📝 {o.notes}</p>
                   )}
 
+                  {o.status === "rejected" && (o as any).cancellation_reason && (
+                    <p className="mt-2 text-sm bg-destructive/10 text-destructive rounded p-2">
+                      <Ban className="inline h-4 w-4 mr-1" />
+                      Cancelado: {(o as any).cancellation_reason}
+                    </p>
+                  )}
+
                   <div className="mt-3 flex gap-2">
                     {o.status === "pending" && (
                       <Button className="flex-1" onClick={() => markAccepted(o)}>
@@ -258,6 +314,11 @@ export default function Cozinha() {
                         <CheckCircle2 className="h-4 w-4 mr-1" />Marcar como pronto
                       </Button>
                     )}
+                    {(o.status === "pending" || o.status === "pending_payment" || o.status === "accepted") && (
+                      <Button variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => openCancel(o)}>
+                        <XCircle className="h-4 w-4 mr-1" />Cancelar
+                      </Button>
+                    )}
                   </div>
                 </Card>
               );
@@ -265,6 +326,54 @@ export default function Cozinha() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!cancelTarget} onOpenChange={(v) => !v && setCancelTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar pedido #{cancelTarget?.order_number}</DialogTitle>
+            <DialogDescription>
+              O cliente será notificado em tempo real na tela de acompanhamento.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Motivo</Label>
+              <div className="mt-2 space-y-1">
+                {CANCEL_REASONS.map((r) => (
+                  <label key={r} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="radio"
+                      name="cancel-reason"
+                      value={r}
+                      checked={cancelReason === r}
+                      onChange={() => setCancelReason(r)}
+                    />
+                    {r}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="cancel-details">Detalhes (opcional)</Label>
+              <Textarea
+                id="cancel-details"
+                value={cancelDetails}
+                onChange={(e) => setCancelDetails(e.target.value.slice(0, 300))}
+                placeholder="Ex.: hambúrguer artesanal esgotou"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={cancelling}>
+              Voltar
+            </Button>
+            <Button variant="destructive" onClick={confirmCancel} disabled={cancelling}>
+              {cancelling ? "Cancelando..." : "Confirmar cancelamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
