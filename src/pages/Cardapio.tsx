@@ -181,72 +181,66 @@ export default function Cardapio() {
     a.click();
   };
 
-  // Poll Asaas for payment confirmation while QR dialog is open
+  // Polling unificado: consulta o banco (via RPC segura) e, em paralelo, força
+  // um refresh contra o Asaas para pedidos com cobrança online. Um único
+  // intervalo evita duplicidade e condições de corrida.
   useEffect(() => {
     if (!pixOpen || !pendingOrder || pixPaid) return;
     let cancelled = false;
-    const scope = "cardapio.pixPoll";
+    const scope = "cardapio.paymentPoll";
     const trace_id = currentTrace ?? newTraceId("poll");
     logEvent(trace_id, scope, "start", "Polling iniciado", "info", { order_id: pendingOrder.id });
+
     const tick = async () => {
       if (cancelled) return;
       setPixChecking(true);
       try {
-        const { data, error } = await supabase.functions.invoke("asaas-check-payment", {
+        // 1) força reconciliação com Asaas (webhook pode ter atrasado)
+        await supabase.functions.invoke("asaas-check-payment", {
           body: { order_id: pendingOrder.id, trace_id },
-        });
-        if (error) logEvent(trace_id, scope, "tick", "Erro na verificação", "warn", { message: error.message });
-        else logEvent(trace_id, scope, "tick", "Status recebido", "info", data);
-        if (!cancelled && data?.paid) {
+        }).catch(() => { /* silencioso — o passo 2 confirma pelo banco */ });
+
+        // 2) lê o estado autoritativo do banco
+        const { data } = await supabase.rpc("get_online_order_status", { _id: pendingOrder.id });
+        if (cancelled || !data) return;
+        const row = data as any;
+
+        if (row.payment_confirmed_at) {
           logEvent(trace_id, scope, "paid", "Pagamento confirmado ✅");
+          setPayStatus((prev) => {
+            if (prev !== "confirmed") {
+              toast.success("Pagamento confirmado! ✅", {
+                description: "Redirecionando para o acompanhamento...",
+              });
+              const targetId = pendingOrder.id;
+              const orderNum = pendingOrder.order_number;
+              setTimeout(() => {
+                // limpa carrinho/checkout persistidos antes de sair
+                finishAndReset(orderNum, targetId);
+                window.location.href = `/acompanhar/${targetId}`;
+              }, 1500);
+            }
+            return "confirmed";
+          });
           setPixPaid(true);
-          setPayStatus("confirmed");
-          toast.success("Pagamento confirmado! ✅");
+        } else if (row.status === "rejected" || row.cancelled_at) {
+          const reason = row.cancellation_reason ?? "Pagamento não autorizado";
+          setPayStatus((prev) => {
+            if (prev !== "failed") toast.error("Pagamento recusado", { description: reason });
+            return "failed";
+          });
+          setPayFailReason(reason);
         }
       } catch (e: any) {
         logEvent(trace_id, scope, "tick", "Exceção no polling", "error", { message: e?.message });
+      } finally {
+        setPixChecking(false);
       }
-      setPixChecking(false);
     };
     tick();
     const id = setInterval(tick, 5000);
     return () => { cancelled = true; clearInterval(id); logEvent(trace_id, scope, "stop", "Polling encerrado"); };
   }, [pixOpen, pendingOrder, pixPaid, currentTrace]);
-
-  // Polling seguro (substitui realtime — RLS agora exige RPC por id)
-  useEffect(() => {
-    if (!pixOpen || !pendingOrder) return;
-    let cancelled = false;
-    const check = async () => {
-      const { data } = await supabase.rpc("get_online_order_status", { _id: pendingOrder.id });
-      if (cancelled || !data) return;
-      const row = data as any;
-      if (row.payment_confirmed_at) {
-        setPayStatus((prev) => {
-          if (prev !== "confirmed") {
-            toast.success("Pagamento confirmado! ✅", {
-              description: "Redirecionando para o acompanhamento...",
-            });
-            setTimeout(() => {
-              window.location.href = `/acompanhar/${pendingOrder.id}`;
-            }, 1500);
-          }
-          return "confirmed";
-        });
-        setPixPaid(true);
-      } else if (row.status === "rejected" || row.cancelled_at) {
-        const reason = row.cancellation_reason ?? "Pagamento não autorizado";
-        setPayStatus((prev) => {
-          if (prev !== "failed") toast.error("Pagamento recusado", { description: reason });
-          return "failed";
-        });
-        setPayFailReason(reason);
-      }
-    };
-    check();
-    const id = setInterval(check, 4000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, [pixOpen, pendingOrder]);
 
 
 
