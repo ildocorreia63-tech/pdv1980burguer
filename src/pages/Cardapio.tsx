@@ -83,6 +83,8 @@ export default function Cardapio() {
   const [pendingOrder, setPendingOrder] = useState<{ id: string; order_number: number } | null>(null);
   const [debugOpen, setDebugOpen] = useState(false);
   const [currentTrace, setCurrentTrace] = useState<string | undefined>(undefined);
+  const [payStatus, setPayStatus] = useState<"pending" | "confirmed" | "failed">("pending");
+  const [payFailReason, setPayFailReason] = useState<string | null>(null);
 
   const [, setTick] = useState(0);
   useEffect(() => {
