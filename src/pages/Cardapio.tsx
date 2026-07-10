@@ -388,6 +388,8 @@ export default function Cardapio() {
         setPendingOrder({ id: order.id, order_number: order.order_number });
         setPixPaid(false);
         setPixCopied(false);
+        setPayStatus("pending");
+        setPayFailReason(null);
         setPixOpen(true);
       } else if (paymentMethod === "credit" || paymentMethod === "debit") {
         stage = "asaas_create_card";
