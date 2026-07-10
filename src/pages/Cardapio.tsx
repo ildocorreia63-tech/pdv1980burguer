@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check, Bug, CreditCard, ExternalLink } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check, Bug, CreditCard, ExternalLink, Share2 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -805,6 +805,19 @@ export default function Cardapio() {
                     <Download className="h-4 w-4" /> Baixar QR
                   </Button>
                 </div>
+                <Button
+                  variant="secondary"
+                  className="w-full gap-2"
+                  onClick={async () => {
+                    const text = `PIX Copia e Cola — Pedido #${pendingOrder?.order_number ?? ""}\nValor: ${formatBRL(total)}\n\n${pixPayload}`;
+                    try {
+                      if (navigator.share) await navigator.share({ title: "Pagamento PIX", text });
+                      else { await navigator.clipboard.writeText(text); toast.success("Código copiado para compartilhar"); }
+                    } catch { /* usuário cancelou */ }
+                  }}
+                >
+                  <Share2 className="h-4 w-4" /> Compartilhar código PIX
+                </Button>
                 <div className="rounded-md bg-amber-500/10 border border-amber-500/30 p-2 text-center">
                   <p className="text-xs">
                     {pixChecking ? "🔄 Verificando pagamento..." : "⏳ Aguardando pagamento (verifica a cada 5s)"}
@@ -839,6 +852,19 @@ export default function Cardapio() {
                     }}
                   >
                     <Copy className="h-4 w-4" /> Copiar link
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="w-full mt-2 gap-2"
+                    onClick={async () => {
+                      const text = `Link para pagamento — Pedido #${pendingOrder?.order_number ?? ""}\nValor: ${formatBRL(total)}\n\n${cardInvoiceUrl}`;
+                      try {
+                        if (navigator.share) await navigator.share({ title: "Pagamento com cartão", text, url: cardInvoiceUrl });
+                        else { await navigator.clipboard.writeText(text); toast.success("Link copiado para compartilhar"); }
+                      } catch { /* usuário cancelou */ }
+                    }}
+                  >
+                    <Share2 className="h-4 w-4" /> Compartilhar link
                   </Button>
                 </div>
                 <p className="text-[11px] text-muted-foreground text-center">
