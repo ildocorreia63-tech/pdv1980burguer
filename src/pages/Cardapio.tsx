@@ -268,7 +268,7 @@ export default function Cardapio() {
     setCheckout(defaultCheckout);
     clearPersistentState(CART_KEY);
     clearPersistentState(CHECKOUT_KEY);
-    setPendingOrder(null); setPixPaid(false); setPixPayload(""); setPixQrDataUrl("");
+    setPendingOrder(null); setPixPaid(false); setPixPayload(""); setPixQrDataUrl(""); setCardInvoiceUrl("");
   };
 
   const submitOrder = async () => {
