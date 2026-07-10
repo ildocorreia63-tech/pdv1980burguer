@@ -356,12 +356,31 @@ export default function Cardapio() {
           throw new Error(pix?.error || pixErr?.message || "Erro ao gerar PIX");
         }
         logEvent(trace_id, scope, stage, "PIX gerado", "info", { payment_id: pix.payment_id, has_qr: !!pix.qr_code, remote_trace: pix.trace_id });
+        setPayMode("pix");
         setPixPayload(pix.payload);
         setPixQrDataUrl(`data:image/png;base64,${pix.qr_code}`);
         setPendingOrder({ id: order.id, order_number: order.order_number });
         setPixPaid(false);
         setPixCopied(false);
         setPixOpen(true);
+      } else if (paymentMethod === "credit" || paymentMethod === "debit") {
+        stage = "asaas_create_card";
+        logEvent(trace_id, scope, stage, "Chamando edge function asaas-create-card", "info", { order_id: order.id, kind: paymentMethod });
+        const { data: card, error: cardErr } = await supabase.functions.invoke("asaas-create-card", {
+          body: { order_id: order.id, kind: paymentMethod, trace_id },
+        });
+        if (cardErr || card?.error) {
+          logEvent(trace_id, scope, stage, "Falha ao gerar cobrança cartão", "error", { cardErr: cardErr?.message, cardError: card?.error, remote_trace: card?.trace_id });
+          throw new Error(card?.error || cardErr?.message || "Erro ao gerar cobrança em cartão");
+        }
+        logEvent(trace_id, scope, stage, "Cobrança cartão criada", "info", { payment_id: card.payment_id, remote_trace: card.trace_id });
+        setPayMode("card");
+        setCardInvoiceUrl(card.invoice_url);
+        setPendingOrder({ id: order.id, order_number: order.order_number });
+        setPixPaid(false);
+        setPixOpen(true);
+        // abre checkout hospedado em nova aba
+        try { window.open(card.invoice_url, "_blank"); } catch { /* ignore */ }
       } else {
         logEvent(trace_id, scope, "whatsapp", "Abrindo WhatsApp (pagamento na entrega)");
         sendWhatsapp(order.order_number, false);
