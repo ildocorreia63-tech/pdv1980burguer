@@ -119,7 +119,10 @@ export default function Acompanhar() {
         {rejected ? (
           <Card className="p-4 border-destructive/50 bg-destructive/5">
             <p className="font-semibold text-destructive">Pedido cancelado pela loja</p>
-            <p className="text-sm text-muted-foreground mt-1">Entre em contato via WhatsApp para mais informações.</p>
+            {order.cancellation_reason && (
+              <p className="text-sm mt-2"><span className="font-medium">Motivo:</span> {order.cancellation_reason}</p>
+            )}
+            <p className="text-sm text-muted-foreground mt-2">Entre em contato via WhatsApp para mais informações.</p>
           </Card>
         ) : (
           <Card className="p-4">
