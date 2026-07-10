@@ -71,13 +71,6 @@ const filters: { key: Filter; label: string }[] = [
   { key: "all", label: "Todos" },
 ];
 
-const filters: { key: Filter; label: string }[] = [
-  { key: "pending", label: "Pendentes" },
-  { key: "pending_payment", label: "Aguard. PIX" },
-  { key: "accepted", label: "Em preparo" },
-  { key: "completed", label: "Faturados" },
-  { key: "all", label: "Todos" },
-];
 
 export default function Cozinha() {
   const [orders, setOrders] = useState<Order[]>([]);
