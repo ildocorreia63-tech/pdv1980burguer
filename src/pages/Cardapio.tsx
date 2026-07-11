@@ -333,51 +333,41 @@ export default function Cardapio() {
     setSubmitting(true);
     let stage = "insert_order";
     try {
-      logEvent(trace_id, scope, stage, "Inserindo pedido em online_orders");
-      const { data: order, error } = await supabase
-        .from("online_orders")
-        .insert({
-          customer_name: name.trim(),
-          customer_phone: phone.trim(),
-          order_type: orderType,
-          delivery_zone_id: orderType === "delivery" ? zoneId : null,
-          delivery_zone_name: orderType === "delivery" ? selectedZone?.name : null,
-          delivery_fee: deliveryFee,
-          address_street: orderType === "delivery" ? street.trim() : null,
-          address_number: orderType === "delivery" ? number.trim() : null,
-          address_complement: orderType === "delivery" ? (complement.trim() || null) : null,
-          address_reference: orderType === "delivery" ? (reference.trim() || null) : null,
-          subtotal,
-          total,
-          notes: notes.trim() || null,
-          payment_method: paymentMethod,
-          payment_change_for: changeForNum,
-          status: (paymentMethod === "pix" || paymentMethod === "credit" || paymentMethod === "debit") ? "pending_payment" : "pending",
-        } as any)
-        .select("id, order_number")
-        .single();
-      if (error) {
-        logEvent(trace_id, scope, stage, "Falha ao inserir pedido", "error", { code: (error as any).code, message: error.message, details: (error as any).details, hint: (error as any).hint });
-        throw error;
-      }
-      logEvent(trace_id, scope, stage, "Pedido criado", "info", { order_id: order.id, order_number: order.order_number });
-
-      stage = "insert_items";
-      const items = availableCart.map((c) => ({
-        online_order_id: order.id,
+      logEvent(trace_id, scope, stage, "Criando pedido via RPC create_online_order");
+      const itemsPayload = availableCart.map((c) => ({
         product_id: c.product.id,
         product_name: c.product.name,
         unit_price: c.product.price,
         quantity: c.qty,
         subtotal: c.product.price * c.qty,
       }));
-      logEvent(trace_id, scope, stage, `Inserindo ${items.length} itens`);
-      const { error: e2 } = await supabase.from("online_order_items").insert(items);
-      if (e2) {
-        logEvent(trace_id, scope, stage, "Falha ao inserir itens", "error", { code: (e2 as any).code, message: e2.message, details: (e2 as any).details, hint: (e2 as any).hint });
-        throw e2;
+      const orderPayload = {
+        customer_name: name.trim(),
+        customer_phone: phone.trim(),
+        order_type: orderType,
+        delivery_zone_id: orderType === "delivery" ? zoneId : null,
+        delivery_zone_name: orderType === "delivery" ? selectedZone?.name : null,
+        delivery_fee: deliveryFee,
+        address_street: orderType === "delivery" ? street.trim() : null,
+        address_number: orderType === "delivery" ? number.trim() : null,
+        address_complement: orderType === "delivery" ? (complement.trim() || null) : null,
+        address_reference: orderType === "delivery" ? (reference.trim() || null) : null,
+        subtotal,
+        total,
+        notes: notes.trim() || null,
+        payment_method: paymentMethod,
+        payment_change_for: changeForNum,
+      };
+      const { data: rpcData, error } = await supabase.rpc("create_online_order", {
+        _order: orderPayload as any,
+        _items: itemsPayload as any,
+      });
+      if (error) {
+        logEvent(trace_id, scope, stage, "Falha ao criar pedido (RPC)", "error", { code: (error as any).code, message: error.message, details: (error as any).details, hint: (error as any).hint });
+        throw error;
       }
-      logEvent(trace_id, scope, stage, "Itens inseridos");
+      const order = rpcData as { id: string; order_number: number };
+      logEvent(trace_id, scope, stage, "Pedido criado", "info", { order_id: order.id, order_number: order.order_number });
 
       if (paymentMethod === "pix") {
         stage = "asaas_create_pix";

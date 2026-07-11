@@ -718,6 +718,10 @@ export type Database = {
       }
     }
     Functions: {
+      create_online_order: {
+        Args: { _items: Json; _order: Json }
+        Returns: Json
+      }
       get_online_order: { Args: { _id: string }; Returns: Json }
       get_online_order_status: { Args: { _id: string }; Returns: Json }
       has_role: {
