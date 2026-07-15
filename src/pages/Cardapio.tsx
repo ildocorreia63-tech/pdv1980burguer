@@ -23,6 +23,23 @@ import { DebugLogDialog } from "@/components/DebugLogDialog";
 const CART_KEY = "cardapio:cart:v1";
 const CHECKOUT_KEY = "cardapio:checkout:v1";
 
+function isValidCPF(digits: string): boolean {
+  const s = (digits || "").replace(/\D/g, "");
+  if (s.length !== 11 || /^(\d)\1{10}$/.test(s)) return false;
+  const calc = (len: number) => {
+    let sum = 0;
+    for (let i = 0; i < len; i++) sum += parseInt(s[i], 10) * (len + 1 - i);
+    const r = (sum * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  return calc(9) === parseInt(s[9], 10) && calc(10) === parseInt(s[10], 10);
+}
+function formatCPF(digits: string): string {
+  const s = digits.replace(/\D/g, "").slice(0, 11);
+  return s.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
+
 type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null; active: boolean };
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
