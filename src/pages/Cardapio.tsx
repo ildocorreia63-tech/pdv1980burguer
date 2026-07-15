@@ -403,7 +403,7 @@ export default function Cardapio() {
         stage = "asaas_create_card";
         logEvent(trace_id, scope, stage, "Chamando edge function asaas-create-card", "info", { order_id: order.id, kind: paymentMethod });
         const { data: card, error: cardErr } = await supabase.functions.invoke("asaas-create-card", {
-          body: { order_id: order.id, kind: paymentMethod, trace_id },
+          body: { order_id: order.id, kind: paymentMethod, trace_id, cpf: cpfDigits },
         });
         if (cardErr || card?.error) {
           logEvent(trace_id, scope, stage, "Falha ao gerar cobrança cartão", "error", { cardErr: cardErr?.message, cardError: card?.error, remote_trace: card?.trace_id });
