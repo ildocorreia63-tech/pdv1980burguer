@@ -42,7 +42,7 @@ export default function Cardapio() {
 
   // checkout fields (persisted as a single object)
   type CheckoutData = {
-    name: string; phone: string;
+    name: string; phone: string; cpf: string;
     orderType: "delivery" | "pickup";
     zoneId: string;
     street: string; number: string; complement: string; reference: string;
@@ -51,14 +51,15 @@ export default function Cardapio() {
     changeFor: string;
   };
   const defaultCheckout: CheckoutData = {
-    name: "", phone: "", orderType: "delivery", zoneId: "",
+    name: "", phone: "", cpf: "", orderType: "delivery", zoneId: "",
     street: "", number: "", complement: "", reference: "",
     notes: "", paymentMethod: "pix", changeFor: "",
   };
   const [checkout, setCheckout] = usePersistentState<CheckoutData>(CHECKOUT_KEY, defaultCheckout);
-  const { name, phone, orderType, zoneId, street, number, complement, reference, notes, paymentMethod, changeFor } = checkout;
+  const { name, phone, cpf, orderType, zoneId, street, number, complement, reference, notes, paymentMethod, changeFor } = checkout;
   const setName = (v: string) => setCheckout((c) => ({ ...c, name: v }));
   const setPhone = (v: string) => setCheckout((c) => ({ ...c, phone: v }));
+  const setCpf = (v: string) => setCheckout((c) => ({ ...c, cpf: v }));
   const setOrderType = (v: "delivery" | "pickup") => setCheckout((c) => ({ ...c, orderType: v }));
   const setZoneId = (v: string) => setCheckout((c) => ({ ...c, zoneId: v }));
   const setStreet = (v: string) => setCheckout((c) => ({ ...c, street: v }));
@@ -68,6 +69,7 @@ export default function Cardapio() {
   const setNotes = (v: string) => setCheckout((c) => ({ ...c, notes: v }));
   const setPaymentMethod = (v: CheckoutData["paymentMethod"]) => setCheckout((c) => ({ ...c, paymentMethod: v }));
   const setChangeFor = (v: string) => setCheckout((c) => ({ ...c, changeFor: v }));
+
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [lastOrderNum, setLastOrderNum] = useState<number | null>(null);
