@@ -382,8 +382,9 @@ export default function Cardapio() {
         stage = "asaas_create_pix";
         logEvent(trace_id, scope, stage, "Chamando edge function asaas-create-pix", "info", { order_id: order.id });
         const { data: pix, error: pixErr } = await supabase.functions.invoke("asaas-create-pix", {
-          body: { order_id: order.id, trace_id },
+          body: { order_id: order.id, trace_id, cpf: cpfDigits },
         });
+
         if (pixErr || pix?.error) {
           logEvent(trace_id, scope, stage, "Falha ao gerar PIX", "error", { pixErr: pixErr?.message, pixError: pix?.error, remote_trace: pix?.trace_id });
           throw new Error(pix?.error || pixErr?.message || "Erro ao gerar PIX");
