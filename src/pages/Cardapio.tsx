@@ -322,6 +322,12 @@ export default function Cardapio() {
     }
     if (!name.trim()) { logEvent(trace_id, scope, "validate", "Nome vazio", "warn"); return toast.error("Informe seu nome"); }
     if (!phone.trim()) { logEvent(trace_id, scope, "validate", "Telefone vazio", "warn"); return toast.error("Informe o telefone"); }
+    const cpfDigits = (cpf || "").replace(/\D/g, "");
+    const needsCpf = paymentMethod === "pix" || paymentMethod === "credit" || paymentMethod === "debit";
+    if (needsCpf && !isValidCPF(cpfDigits)) {
+      logEvent(trace_id, scope, "validate", "CPF inválido", "warn");
+      return toast.error("Informe um CPF válido (obrigatório para pagamento online)");
+    }
     if (orderType === "delivery") {
       if (!zoneId) { logEvent(trace_id, scope, "validate", "Bairro não selecionado", "warn"); return toast.error("Selecione o bairro"); }
       if (!street.trim() || !number.trim()) { logEvent(trace_id, scope, "validate", "Endereço incompleto", "warn"); return toast.error("Informe rua e número"); }
@@ -331,6 +337,7 @@ export default function Cardapio() {
       logEvent(trace_id, scope, "validate", "Troco inválido", "warn", { changeForNum, total });
       return toast.error("Troco para um valor maior que o total");
     }
+
     logEvent(trace_id, scope, "validate", "Validações OK");
     setSubmitting(true);
     let stage = "insert_order";
