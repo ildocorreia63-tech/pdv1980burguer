@@ -61,15 +61,21 @@ Deno.serve(async (req) => {
     }
 
     stage = "create_customer";
+    const cpfCnpj = String(body?.cpf ?? "").replace(/\D/g, "");
+    if (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
+      log(trace_id, stage, "CPF/CNPJ ausente ou inválido", { len: cpfCnpj.length });
+      return json({ error: "CPF do cliente é obrigatório para gerar a cobrança", trace_id }, 400);
+    }
     const customerRes = await fetch(`${ASAAS_BASE}/customers`, {
       method: "POST",
       headers: { "access_token": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
         name: order.customer_name,
         mobilePhone: (order.customer_phone || "").replace(/\D/g, ""),
-        cpfCnpj: "00000000000",
+        cpfCnpj,
       }),
     });
+
     const customer = await customerRes.json();
     if (!customerRes.ok) {
       log(trace_id, stage, "Falha ao criar cliente", { status: customerRes.status, body: customer });

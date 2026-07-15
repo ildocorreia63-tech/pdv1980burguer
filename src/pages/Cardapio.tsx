@@ -23,6 +23,23 @@ import { DebugLogDialog } from "@/components/DebugLogDialog";
 const CART_KEY = "cardapio:cart:v1";
 const CHECKOUT_KEY = "cardapio:checkout:v1";
 
+function isValidCPF(digits: string): boolean {
+  const s = (digits || "").replace(/\D/g, "");
+  if (s.length !== 11 || /^(\d)\1{10}$/.test(s)) return false;
+  const calc = (len: number) => {
+    let sum = 0;
+    for (let i = 0; i < len; i++) sum += parseInt(s[i], 10) * (len + 1 - i);
+    const r = (sum * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  return calc(9) === parseInt(s[9], 10) && calc(10) === parseInt(s[10], 10);
+}
+function formatCPF(digits: string): string {
+  const s = digits.replace(/\D/g, "").slice(0, 11);
+  return s.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
+
 type Product = { id: string; name: string; price: number; description: string | null; category_id: string | null; image_url: string | null; active: boolean };
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
@@ -42,7 +59,7 @@ export default function Cardapio() {
 
   // checkout fields (persisted as a single object)
   type CheckoutData = {
-    name: string; phone: string;
+    name: string; phone: string; cpf: string;
     orderType: "delivery" | "pickup";
     zoneId: string;
     street: string; number: string; complement: string; reference: string;
@@ -51,14 +68,15 @@ export default function Cardapio() {
     changeFor: string;
   };
   const defaultCheckout: CheckoutData = {
-    name: "", phone: "", orderType: "delivery", zoneId: "",
+    name: "", phone: "", cpf: "", orderType: "delivery", zoneId: "",
     street: "", number: "", complement: "", reference: "",
     notes: "", paymentMethod: "pix", changeFor: "",
   };
   const [checkout, setCheckout] = usePersistentState<CheckoutData>(CHECKOUT_KEY, defaultCheckout);
-  const { name, phone, orderType, zoneId, street, number, complement, reference, notes, paymentMethod, changeFor } = checkout;
+  const { name, phone, cpf, orderType, zoneId, street, number, complement, reference, notes, paymentMethod, changeFor } = checkout;
   const setName = (v: string) => setCheckout((c) => ({ ...c, name: v }));
   const setPhone = (v: string) => setCheckout((c) => ({ ...c, phone: v }));
+  const setCpf = (v: string) => setCheckout((c) => ({ ...c, cpf: v }));
   const setOrderType = (v: "delivery" | "pickup") => setCheckout((c) => ({ ...c, orderType: v }));
   const setZoneId = (v: string) => setCheckout((c) => ({ ...c, zoneId: v }));
   const setStreet = (v: string) => setCheckout((c) => ({ ...c, street: v }));
@@ -68,6 +86,7 @@ export default function Cardapio() {
   const setNotes = (v: string) => setCheckout((c) => ({ ...c, notes: v }));
   const setPaymentMethod = (v: CheckoutData["paymentMethod"]) => setCheckout((c) => ({ ...c, paymentMethod: v }));
   const setChangeFor = (v: string) => setCheckout((c) => ({ ...c, changeFor: v }));
+
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [lastOrderNum, setLastOrderNum] = useState<number | null>(null);
@@ -320,6 +339,12 @@ export default function Cardapio() {
     }
     if (!name.trim()) { logEvent(trace_id, scope, "validate", "Nome vazio", "warn"); return toast.error("Informe seu nome"); }
     if (!phone.trim()) { logEvent(trace_id, scope, "validate", "Telefone vazio", "warn"); return toast.error("Informe o telefone"); }
+    const cpfDigits = (cpf || "").replace(/\D/g, "");
+    const needsCpf = paymentMethod === "pix" || paymentMethod === "credit" || paymentMethod === "debit";
+    if (needsCpf && !isValidCPF(cpfDigits)) {
+      logEvent(trace_id, scope, "validate", "CPF inválido", "warn");
+      return toast.error("Informe um CPF válido (obrigatório para pagamento online)");
+    }
     if (orderType === "delivery") {
       if (!zoneId) { logEvent(trace_id, scope, "validate", "Bairro não selecionado", "warn"); return toast.error("Selecione o bairro"); }
       if (!street.trim() || !number.trim()) { logEvent(trace_id, scope, "validate", "Endereço incompleto", "warn"); return toast.error("Informe rua e número"); }
@@ -329,6 +354,7 @@ export default function Cardapio() {
       logEvent(trace_id, scope, "validate", "Troco inválido", "warn", { changeForNum, total });
       return toast.error("Troco para um valor maior que o total");
     }
+
     logEvent(trace_id, scope, "validate", "Validações OK");
     setSubmitting(true);
     let stage = "insert_order";
@@ -373,8 +399,9 @@ export default function Cardapio() {
         stage = "asaas_create_pix";
         logEvent(trace_id, scope, stage, "Chamando edge function asaas-create-pix", "info", { order_id: order.id });
         const { data: pix, error: pixErr } = await supabase.functions.invoke("asaas-create-pix", {
-          body: { order_id: order.id, trace_id },
+          body: { order_id: order.id, trace_id, cpf: cpfDigits },
         });
+
         if (pixErr || pix?.error) {
           logEvent(trace_id, scope, stage, "Falha ao gerar PIX", "error", { pixErr: pixErr?.message, pixError: pix?.error, remote_trace: pix?.trace_id });
           throw new Error(pix?.error || pixErr?.message || "Erro ao gerar PIX");
@@ -393,7 +420,7 @@ export default function Cardapio() {
         stage = "asaas_create_card";
         logEvent(trace_id, scope, stage, "Chamando edge function asaas-create-card", "info", { order_id: order.id, kind: paymentMethod });
         const { data: card, error: cardErr } = await supabase.functions.invoke("asaas-create-card", {
-          body: { order_id: order.id, kind: paymentMethod, trace_id },
+          body: { order_id: order.id, kind: paymentMethod, trace_id, cpf: cpfDigits },
         });
         if (cardErr || card?.error) {
           logEvent(trace_id, scope, stage, "Falha ao gerar cobrança cartão", "error", { cardErr: cardErr?.message, cardError: card?.error, remote_trace: card?.trace_id });
@@ -617,6 +644,19 @@ export default function Cardapio() {
             <div className="grid grid-cols-1 gap-3">
               <div><Label>Nome *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" /></div>
               <div><Label>Telefone (WhatsApp) *</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" inputMode="tel" /></div>
+              {(paymentMethod === "pix" || paymentMethod === "credit" || paymentMethod === "debit") && (
+                <div>
+                  <Label>CPF *</Label>
+                  <Input
+                    value={formatCPF(cpf)}
+                    onChange={(e) => setCpf(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                    placeholder="000.000.000-00"
+                    inputMode="numeric"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">Obrigatório para gerar cobrança no banco.</p>
+                </div>
+              )}
+
             </div>
 
             {orderType === "delivery" && (
