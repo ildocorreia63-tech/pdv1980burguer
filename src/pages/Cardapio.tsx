@@ -644,6 +644,19 @@ export default function Cardapio() {
             <div className="grid grid-cols-1 gap-3">
               <div><Label>Nome *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" /></div>
               <div><Label>Telefone (WhatsApp) *</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" inputMode="tel" /></div>
+              {(paymentMethod === "pix" || paymentMethod === "credit" || paymentMethod === "debit") && (
+                <div>
+                  <Label>CPF *</Label>
+                  <Input
+                    value={formatCPF(cpf)}
+                    onChange={(e) => setCpf(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                    placeholder="000.000.000-00"
+                    inputMode="numeric"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">Obrigatório para gerar cobrança no banco.</p>
+                </div>
+              )}
+
             </div>
 
             {orderType === "delivery" && (
