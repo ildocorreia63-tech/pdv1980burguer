@@ -429,8 +429,13 @@ export default function Cardapio() {
           body: { order_id: order.id, kind: paymentMethod, trace_id, cpf: cpfDigits },
         });
         if (cardErr || card?.error) {
-          logEvent(trace_id, scope, stage, "Falha ao gerar cobrança cartão", "error", { cardErr: cardErr?.message, cardError: card?.error, remote_trace: card?.trace_id });
-          throw new Error(card?.error || cardErr?.message || "Erro ao gerar cobrança em cartão");
+          let serverBody: any = card;
+          if (cardErr && (cardErr as any).context?.response) {
+            try { serverBody = await (cardErr as any).context.response.clone().json(); } catch { /* ignore */ }
+          }
+          const serverMsg = serverBody?.error || cardErr?.message || "Erro ao gerar cobrança em cartão";
+          logEvent(trace_id, scope, stage, "Falha ao gerar cobrança cartão", "error", { cardErr: cardErr?.message, serverMsg, serverBody, remote_trace: serverBody?.trace_id });
+          throw new Error(serverMsg);
         }
         logEvent(trace_id, scope, stage, "Cobrança cartão criada", "info", { payment_id: card.payment_id, remote_trace: card.trace_id });
         setPayMode("card");
