@@ -403,9 +403,15 @@ export default function Cardapio() {
         });
 
         if (pixErr || pix?.error) {
-          logEvent(trace_id, scope, stage, "Falha ao gerar PIX", "error", { pixErr: pixErr?.message, pixError: pix?.error, remote_trace: pix?.trace_id });
-          throw new Error(pix?.error || pixErr?.message || "Erro ao gerar PIX");
+          let serverBody: any = pix;
+          if (pixErr && (pixErr as any).context?.response) {
+            try { serverBody = await (pixErr as any).context.response.clone().json(); } catch { /* ignore */ }
+          }
+          const serverMsg = serverBody?.error || pixErr?.message || "Erro ao gerar PIX";
+          logEvent(trace_id, scope, stage, "Falha ao gerar PIX", "error", { pixErr: pixErr?.message, serverMsg, serverBody, remote_trace: serverBody?.trace_id });
+          throw new Error(serverMsg);
         }
+
         logEvent(trace_id, scope, stage, "PIX gerado", "info", { payment_id: pix.payment_id, has_qr: !!pix.qr_code, remote_trace: pix.trace_id });
         setPayMode("pix");
         setPixPayload(pix.payload);
