@@ -5,13 +5,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Minus, Trash2, ShoppingCart, Search, ImageIcon, Utensils, Store, RotateCcw } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingCart, Search, ImageIcon, Utensils, Store, RotateCcw, DollarSign } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { CheckoutSheet } from "@/components/pdv/CheckoutSheet";
 import { ReceiptDialog } from "@/components/pdv/ReceiptDialog";
+import { CashRegisterDialog } from "@/components/pdv/CashRegisterDialog";
 import type { ReceiptData } from "@/lib/receipt";
 import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentState";
 
@@ -38,6 +39,7 @@ export default function PDV() {
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [openReceipt, setOpenReceipt] = useState(false);
   const [openCart, setOpenCart] = useState(false);
+  const [cashOpen, setCashOpen] = useState(false);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -118,7 +120,14 @@ export default function PDV() {
   };
 
   return (
-    <AppShell title={`PDV — ${tableLabel(activeTable)}`}>
+    <AppShell
+      title={`PDV — ${tableLabel(activeTable)}`}
+      action={
+        <Button size="sm" variant="outline" onClick={() => setCashOpen(true)}>
+          <DollarSign className="h-4 w-4 mr-1" />Caixa
+        </Button>
+      }
+    >
       <div className="sticky top-[64px] z-20 -mx-4 bg-background/95 backdrop-blur px-4 pb-2 pt-1 space-y-2">
         {/* Table selector */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
@@ -329,6 +338,7 @@ export default function PDV() {
       />
 
       <ReceiptDialog open={openReceipt} onOpenChange={setOpenReceipt} receipt={receipt} />
+      <CashRegisterDialog open={cashOpen} onOpenChange={setCashOpen} />
     </AppShell>
   );
 }
