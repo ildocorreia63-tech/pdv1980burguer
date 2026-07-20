@@ -338,6 +338,7 @@ export default function PDV() {
       />
 
       <ReceiptDialog open={openReceipt} onOpenChange={setOpenReceipt} receipt={receipt} />
+      <CashRegisterDialog open={cashOpen} onOpenChange={setCashOpen} />
     </AppShell>
   );
 }
