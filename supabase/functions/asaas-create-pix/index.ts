@@ -1,12 +1,17 @@
 // Creates a PIX charge in Asaas for an existing online_order and returns QR data.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { z } from "npm:zod@3.23.8";
 
 const ASAAS_BASE = "https://api.asaas.com/v3";
+const RequestSchema = z.object({
+  order_id: z.string().uuid(),
+  trace_id: z.string().trim().min(1).max(120).optional(),
+  cpf: z.string().transform((value) => value.replace(/\D/g, "")).refine(
+    (value) => value.length === 11 || value.length === 14,
+    "CPF/CNPJ inválido",
+  ),
+});
 
 function newTraceId() {
   return `pix_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -25,18 +30,18 @@ Deno.serve(async (req) => {
   let trace_id = newTraceId();
   let stage = "parse_body";
   try {
-    const body = await req.json().catch(() => ({}));
-    const order_id = body?.order_id;
-    if (typeof body?.trace_id === "string" && body.trace_id) trace_id = body.trace_id;
-    log(trace_id, stage, "Body recebido", { order_id, has_client_trace: !!body?.trace_id });
-
-    if (!order_id || typeof order_id !== "string") {
-      log(trace_id, stage, "order_id ausente/ inválido", null);
-      return json({ error: "order_id obrigatório", trace_id }, 400);
+    const rawBody = await req.json().catch(() => ({}));
+    if (typeof rawBody?.trace_id === "string" && rawBody.trace_id) trace_id = rawBody.trace_id;
+    const parsed = RequestSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      log(trace_id, stage, "Dados inválidos", { fields: parsed.error.flatten().fieldErrors });
+      return json({ error: "Pedido ou CPF inválido", fields: parsed.error.flatten().fieldErrors, trace_id, stage }, 400);
     }
+    const { order_id, cpf: cpfCnpj } = parsed.data;
+    log(trace_id, stage, "Body recebido", { order_id, has_client_trace: !!parsed.data.trace_id });
 
     stage = "check_secret";
-    const apiKey = Deno.env.get("ASAAS_API_KEY");
+    const apiKey = Deno.env.get("ASAAS_API_KEY")?.trim();
     if (!apiKey) {
       log(trace_id, stage, "ASAAS_API_KEY não configurada");
       return json({ error: "ASAAS_API_KEY não configurada", trace_id }, 500);
@@ -70,7 +75,7 @@ Deno.serve(async (req) => {
       order.sale_id ||
       ageMin > 15
     ) {
-      if (order.asaas_payment_id && order.asaas_invoice_url) {
+      if (order.asaas_payment_id) {
         // fall through to QR refetch
       } else {
         log(trace_id, stage, "Pedido não elegível", { allowedStatus, payment_method: order.payment_method, payment_confirmed_at: order.payment_confirmed_at, sale_id: order.sale_id, ageMin });
@@ -78,13 +83,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (order.asaas_payment_id && order.asaas_invoice_url) {
+    if (order.asaas_payment_id) {
       stage = "refetch_qr";
       log(trace_id, stage, "Cobrança já existe — recarregando QR", { payment_id: order.asaas_payment_id });
       const qr = await fetchPixQr(order.asaas_payment_id, apiKey);
       return json({
         payment_id: order.asaas_payment_id,
-        invoice_url: order.asaas_invoice_url,
+        invoice_url: order.asaas_invoice_url ?? null,
         qr_code: qr.encodedImage,
         payload: qr.payload,
         expiration_date: qr.expirationDate,
@@ -93,35 +98,26 @@ Deno.serve(async (req) => {
     }
 
     stage = "create_customer";
-    const cpfCnpj = String(body?.cpf ?? "").replace(/\D/g, "");
-    if (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
-      log(trace_id, stage, "CPF/CNPJ ausente ou inválido", { len: cpfCnpj.length });
-      return json({ error: "CPF do cliente é obrigatório para gerar a cobrança PIX", trace_id }, 400);
-    }
-
     log(trace_id, stage, "Criando cliente Asaas", { name: order.customer_name });
-    const customerRes = await fetch(`${ASAAS_BASE}/customers`, {
+    const phoneDigits = String(order.customer_phone ?? "").replace(/\D/g, "");
+    if (phoneDigits.length !== 10 && phoneDigits.length !== 11) {
+      return json({ error: "Telefone inválido. Informe DDD + número para gerar o PIX.", trace_id, stage }, 400);
+    }
+    const customer = await asaasRequest(`${ASAAS_BASE}/customers`, apiKey, {
       method: "POST",
-      headers: { "access_token": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
         name: order.customer_name,
-        mobilePhone: (order.customer_phone || "").replace(/\D/g, ""),
+        mobilePhone: phoneDigits,
         cpfCnpj,
       }),
     });
-    const customer = await customerRes.json();
-    if (!customerRes.ok) {
-      log(trace_id, stage, "Falha ao criar cliente Asaas", { status: customerRes.status, body: customer });
-      return json({ error: customer?.errors?.[0]?.description || "Erro ao criar cliente Asaas", trace_id }, 502);
-    }
     log(trace_id, stage, "Cliente criado", { customer_id: customer.id });
 
     stage = "create_payment";
     const dueDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     log(trace_id, stage, "Criando cobrança PIX", { value: Number(order.total), dueDate });
-    const paymentRes = await fetch(`${ASAAS_BASE}/payments`, {
+    const payment = await asaasRequest(`${ASAAS_BASE}/payments`, apiKey, {
       method: "POST",
-      headers: { "access_token": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
         customer: customer.id,
         billingType: "PIX",
@@ -131,16 +127,7 @@ Deno.serve(async (req) => {
         externalReference: order.id,
       }),
     });
-    const payment = await paymentRes.json();
-    if (!paymentRes.ok) {
-      log(trace_id, stage, "Falha ao criar cobrança PIX", { status: paymentRes.status, body: payment });
-      return json({ error: payment?.errors?.[0]?.description || "Erro ao criar cobrança PIX", trace_id }, 502);
-    }
     log(trace_id, stage, "Cobrança criada", { payment_id: payment.id, invoice_url: payment.invoiceUrl });
-
-    stage = "fetch_qr";
-    const qr = await fetchPixQr(payment.id, apiKey);
-    log(trace_id, stage, "QR obtido", { has_payload: !!qr.payload, has_image: !!qr.encodedImage });
 
     stage = "update_order";
     const upd = await supabase.from("online_orders").update({
@@ -151,6 +138,10 @@ Deno.serve(async (req) => {
     if (upd.error) log(trace_id, stage, "Falha ao atualizar pedido com dados do PIX", { message: upd.error.message });
     else log(trace_id, stage, "Pedido atualizado");
 
+    stage = "fetch_qr";
+    const qr = await fetchPixQr(payment.id, apiKey);
+    log(trace_id, stage, "QR obtido", { has_payload: !!qr.payload, has_image: !!qr.encodedImage });
+
     return json({
       payment_id: payment.id,
       invoice_url: payment.invoiceUrl,
@@ -160,16 +151,46 @@ Deno.serve(async (req) => {
       trace_id,
     });
   } catch (e) {
-    log(trace_id, `${stage}:catch`, (e as Error).message, { stack: (e as Error).stack });
-    return json({ error: (e as Error).message, trace_id, stage }, 500);
+    const error = e as Error & { status?: number; details?: unknown };
+    log(trace_id, `${stage}:catch`, error.message, { status: error.status, details: error.details, stack: error.stack });
+    const message = error.status === 401
+      ? "Chave do Asaas inválida ou ambiente incorreto. Atualize a ASAAS_API_KEY."
+      : error.message;
+    return json({ error: message, trace_id, stage }, error.status && error.status < 500 ? 400 : 502);
   }
 });
 
 async function fetchPixQr(paymentId: string, apiKey: string) {
-  const r = await fetch(`${ASAAS_BASE}/payments/${paymentId}/pixQrCode`, {
-    headers: { "access_token": apiKey },
+  const qr = await asaasRequest(`${ASAAS_BASE}/payments/${paymentId}/pixQrCode`, apiKey);
+  if (!qr?.encodedImage || !qr?.payload) {
+    const error = new Error("O Asaas criou a cobrança, mas não retornou o QR Code PIX.") as Error & { status?: number; details?: unknown };
+    error.status = 502;
+    error.details = qr;
+    throw error;
+  }
+  return qr;
+}
+
+async function asaasRequest(url: string, apiKey: string, init: RequestInit = {}) {
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      "access_token": apiKey,
+      "Content-Type": "application/json",
+      "User-Agent": "PDV-1980-Burguer/1.0",
+      ...(init.headers ?? {}),
+    },
   });
-  return await r.json();
+  const text = await response.text();
+  let data: any = {};
+  try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text.slice(0, 500) }; }
+  if (!response.ok) {
+    const error = new Error(data?.errors?.[0]?.description || data?.error || `Asaas respondeu HTTP ${response.status}`) as Error & { status?: number; details?: unknown };
+    error.status = response.status;
+    error.details = data;
+    throw error;
+  }
+  return data;
 }
 
 function json(body: unknown, status = 200) {
