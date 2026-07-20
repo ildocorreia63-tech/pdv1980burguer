@@ -5,13 +5,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Plus, Minus, Trash2, ShoppingCart, Search, ImageIcon, Utensils, Store, RotateCcw } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingCart, Search, ImageIcon, Utensils, Store, RotateCcw, DollarSign } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { CheckoutSheet } from "@/components/pdv/CheckoutSheet";
 import { ReceiptDialog } from "@/components/pdv/ReceiptDialog";
+import { CashRegisterDialog } from "@/components/pdv/CashRegisterDialog";
 import type { ReceiptData } from "@/lib/receipt";
 import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentState";
 

@@ -353,7 +353,8 @@ function openingHtml(amount: number, notes: string, email: string) {
   `;
 }
 
-function closingHtml(session: Session, t: ReturnType<typeof (()=>({opening:0,cashSales:0,reforco:0,sangria:0,expected:0,salesTotal:0,byPayment:{} as Record<string,number>}))>, counted: number, diff: number, notes: string, movs: Movement[]) {
+type Totals = { opening: number; cashSales: number; reforco: number; sangria: number; expected: number; salesTotal: number; byPayment: Record<string, number> };
+function closingHtml(session: Session, t: Totals, counted: number, diff: number, notes: string, movs: Movement[]) {
   const pay = Object.entries(t.byPayment)
     .map(([k, v]) => `<tr><td>${paymentLabel[k] || k}</td><td class="r">${formatBRL(v)}</td></tr>`).join("");
   const movRows = movs.map((m) => `<tr><td>${m.type === "sangria" ? "− Sangria" : "+ Reforço"}${m.reason ? " · " + m.reason : ""}</td><td class="r">${formatBRL(m.amount)}</td></tr>`).join("");
