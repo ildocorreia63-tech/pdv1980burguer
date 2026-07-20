@@ -119,7 +119,14 @@ export default function PDV() {
   };
 
   return (
-    <AppShell title={`PDV — ${tableLabel(activeTable)}`}>
+    <AppShell
+      title={`PDV — ${tableLabel(activeTable)}`}
+      action={
+        <Button size="sm" variant="outline" onClick={() => setCashOpen(true)}>
+          <DollarSign className="h-4 w-4 mr-1" />Caixa
+        </Button>
+      }
+    >
       <div className="sticky top-[64px] z-20 -mx-4 bg-background/95 backdrop-blur px-4 pb-2 pt-1 space-y-2">
         {/* Table selector */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
