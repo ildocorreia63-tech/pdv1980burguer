@@ -339,6 +339,11 @@ export default function Cardapio() {
     }
     if (!name.trim()) { logEvent(trace_id, scope, "validate", "Nome vazio", "warn"); return toast.error("Informe seu nome"); }
     if (!phone.trim()) { logEvent(trace_id, scope, "validate", "Telefone vazio", "warn"); return toast.error("Informe o telefone"); }
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (phoneDigits.length !== 10 && phoneDigits.length !== 11) {
+      logEvent(trace_id, scope, "validate", "Telefone inválido", "warn", { digits: phoneDigits.length });
+      return toast.error("Informe um telefone válido com DDD");
+    }
     const cpfDigits = (cpf || "").replace(/\D/g, "");
     const needsCpf = paymentMethod === "pix" || paymentMethod === "credit" || paymentMethod === "debit";
     if (needsCpf && !isValidCPF(cpfDigits)) {
@@ -369,7 +374,7 @@ export default function Cardapio() {
       }));
       const orderPayload = {
         customer_name: name.trim(),
-        customer_phone: phone.trim(),
+        customer_phone: phoneDigits,
         order_type: orderType,
         delivery_zone_id: orderType === "delivery" ? zoneId : null,
         delivery_zone_name: orderType === "delivery" ? selectedZone?.name : null,
