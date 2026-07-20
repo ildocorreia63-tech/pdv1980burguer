@@ -39,6 +39,7 @@ export default function PDV() {
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [openReceipt, setOpenReceipt] = useState(false);
   const [openCart, setOpenCart] = useState(false);
+  const [cashOpen, setCashOpen] = useState(false);
 
   useEffect(() => {
     const loadProducts = async () => {
