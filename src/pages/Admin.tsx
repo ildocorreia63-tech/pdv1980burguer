@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
-import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon, Upload, ImageIcon, Loader2, Clock, Boxes, ClipboardList } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon, Upload, ImageIcon, Loader2, Clock, Boxes, ClipboardList, Webhook } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { BusinessHours, DEFAULT_HOURS, WEEKDAYS } from "@/lib/businessHours";
@@ -55,6 +55,45 @@ export default function Admin() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [catOpen, setCatOpen] = useState(false);
   const [newCatName, setNewCatName] = useState("");
+
+  // Simulador de webhook Asaas
+  const [simOpen, setSimOpen] = useState(false);
+  const [simOrderId, setSimOrderId] = useState("");
+  const [simEvent, setSimEvent] = useState<"PAYMENT_CONFIRMED" | "PAYMENT_REFUNDED" | "PAYMENT_OVERDUE" | "PAYMENT_RECEIVED">("PAYMENT_CONFIRMED");
+  const [simLoading, setSimLoading] = useState(false);
+  const [simResult, setSimResult] = useState<any>(null);
+  const [recentOrders, setRecentOrders] = useState<{ id: string; order_number: number; status: string; customer_name: string }[]>([]);
+
+  const loadRecentOrders = async () => {
+    const { data } = await supabase
+      .from("online_orders")
+      .select("id, order_number, status, customer_name")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setRecentOrders((data ?? []) as any);
+  };
+
+  const runSimulation = async () => {
+    if (!simOrderId) return toast.error("Selecione um pedido");
+    setSimLoading(true);
+    setSimResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("asaas-simulate-webhook", {
+        body: { order_id: simOrderId, event: simEvent },
+      });
+      if (error) throw error;
+      setSimResult(data);
+      toast.success(`Evento ${simEvent} simulado`);
+    } catch (e: any) {
+      toast.error("Falha: " + (e?.message ?? "erro"));
+      setSimResult({ error: e?.message });
+    } finally {
+      setSimLoading(false);
+    }
+  };
+
+  useEffect(() => { if (simOpen) loadRecentOrders(); }, [simOpen]);
+
 
   // Delivery zones
   const [zonesOpen, setZonesOpen] = useState(false);
@@ -304,6 +343,9 @@ export default function Admin() {
           </Button>
           <Button size="icon" variant="outline" onClick={() => setCatOpen(true)} title="Categorias">
             <Tag className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="outline" onClick={() => setSimOpen(true)} title="Testar webhook Asaas">
+            <Webhook className="h-4 w-4" />
           </Button>
           <Button size="icon" variant="outline" onClick={openNew} title="Novo produto">
             <Plus className="h-4 w-4" />
@@ -587,6 +629,58 @@ export default function Admin() {
           </div>
           <div className="border-t border-border p-3 bg-background">
             <Button className="w-full" onClick={saveSettings}>Salvar todas as configurações</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Simulador de webhook Asaas */}
+      <Dialog open={simOpen} onOpenChange={setSimOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Testar webhook Asaas</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Simula o envio de um evento do Asaas para o endpoint <code>asaas-webhook</code> e mostra como o pedido muda de estado. Útil para validar sem depender do pagamento real.
+            </p>
+            <div>
+              <Label>Pedido</Label>
+              <select
+                className="mt-1 w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
+                value={simOrderId}
+                onChange={(e) => setSimOrderId(e.target.value)}
+              >
+                <option value="">— selecione —</option>
+                {recentOrders.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    #{o.order_number} · {o.customer_name} · {o.status}
+                  </option>
+                ))}
+              </select>
+              <button type="button" className="mt-1 text-[11px] text-primary underline" onClick={loadRecentOrders}>
+                Recarregar pedidos
+              </button>
+            </div>
+            <div>
+              <Label>Evento</Label>
+              <select
+                className="mt-1 w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
+                value={simEvent}
+                onChange={(e) => setSimEvent(e.target.value as any)}
+              >
+                <option value="PAYMENT_CONFIRMED">PAYMENT_CONFIRMED (pago)</option>
+                <option value="PAYMENT_RECEIVED">PAYMENT_RECEIVED (recebido)</option>
+                <option value="PAYMENT_REFUNDED">PAYMENT_REFUNDED (estornado)</option>
+                <option value="PAYMENT_OVERDUE">PAYMENT_OVERDUE (vencido)</option>
+              </select>
+            </div>
+            <Button className="w-full" onClick={runSimulation} disabled={simLoading}>
+              {simLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Webhook className="h-4 w-4 mr-2" />}
+              Disparar simulação
+            </Button>
+            {simResult && (
+              <div className="rounded-md border border-border bg-muted/40 p-2 text-[11px] max-h-64 overflow-auto">
+                <pre className="whitespace-pre-wrap break-all">{JSON.stringify(simResult, null, 2)}</pre>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
