@@ -15,7 +15,20 @@ export function usePersistentState<T>(key: string, initial: T) {
         parsed && typeof parsed === "object" && !Array.isArray(parsed) &&
         initial && typeof initial === "object" && !Array.isArray(initial)
       ) {
-        return { ...(initial as object), ...(parsed as object) } as T;
+        const defaults = initial as Record<string, unknown>;
+        const saved = parsed as Record<string, unknown>;
+        const normalized = { ...defaults, ...saved };
+
+        // Old persisted versions can contain null/undefined for fields that are
+        // strings today. Restore the current default instead of letting those
+        // stale values crash formatters such as trim/replace.
+        for (const [field, defaultValue] of Object.entries(defaults)) {
+          if (typeof defaultValue === "string" && typeof normalized[field] !== "string") {
+            normalized[field] = defaultValue;
+          }
+        }
+
+        return normalized as T;
       }
       return parsed;
     } catch {
