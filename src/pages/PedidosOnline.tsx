@@ -231,7 +231,8 @@ export default function PedidosOnline() {
   };
 
   const openWhats = (o: Order) => {
-    const phone = o.customer_phone.replace(/\D/g, "");
+    const phone = (o.customer_phone ?? "").replace(/\D/g, "");
+    if (!phone) return toast.error("Pedido sem telefone");
     window.open(`https://wa.me/55${phone}`, "_blank");
   };
 
