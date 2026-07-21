@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const ASAAS_BASE = "https://api.asaas.com/v3";
+const ASAAS_BASE = "https://api-sandbox.asaas.com/v3";
 
 function newTraceId() {
   return `card_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;

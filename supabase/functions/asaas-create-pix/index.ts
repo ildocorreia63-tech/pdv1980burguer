@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const ASAAS_BASE = "https://api.asaas.com/v3";
+const ASAAS_BASE = "https://api-sandbox.asaas.com/v3";
 const RequestSchema = z.object({
   order_id: z.string().uuid(),
   trace_id: z.string().trim().min(1).max(120).optional(),
