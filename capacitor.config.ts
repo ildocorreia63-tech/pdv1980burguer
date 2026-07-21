@@ -5,8 +5,8 @@ const config: CapacitorConfig = {
   appName: 'pdv1980burguer',
   webDir: 'dist',
   server: {
-    url: 'https://2f2c5709-2905-478e-b8b5-917e6ced8784.lovableproject.com?forceHideBadge=true',
-    cleartext: true,
+    url: 'https://pdv1980burguer.lovable.app',
+    cleartext: false,
   },
 };
 
