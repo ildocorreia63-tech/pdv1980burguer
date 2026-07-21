@@ -6,6 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const ASAAS_BASE = "https://api-sandbox.asaas.com/v3";
+
 function newTraceId() {
   return `chk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -47,7 +49,7 @@ Deno.serve(async (req) => {
     }
 
     stage = "fetch_asaas";
-    const r = await fetch(`https://api.asaas.com/v3/payments/${order.asaas_payment_id}`, {
+    const r = await fetch(`${ASAAS_BASE}/payments/${order.asaas_payment_id}`, {
       headers: { "access_token": apiKey },
     });
     const p = await r.json();
