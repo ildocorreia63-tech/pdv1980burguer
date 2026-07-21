@@ -9,7 +9,15 @@ export function usePersistentState<T>(key: string, initial: T) {
     try {
       const raw = localStorage.getItem(key);
       if (raw === null) return initial;
-      return JSON.parse(raw) as T;
+      const parsed = JSON.parse(raw) as T;
+      // Merge object defaults so new fields added later are never undefined.
+      if (
+        parsed && typeof parsed === "object" && !Array.isArray(parsed) &&
+        initial && typeof initial === "object" && !Array.isArray(initial)
+      ) {
+        return { ...(initial as object), ...(parsed as object) } as T;
+      }
+      return parsed;
     } catch {
       return initial;
     }
