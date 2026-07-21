@@ -23,8 +23,11 @@ import { DebugLogDialog } from "@/components/DebugLogDialog";
 const CART_KEY = "cardapio:cart:v1";
 const CHECKOUT_KEY = "cardapio:checkout:v1";
 
+const safeString = (value: unknown): string => typeof value === "string" ? value : "";
+const onlyDigits = (value: unknown): string => safeString(value).replace(/\D/g, "");
+
 function isValidCPF(digits: string): boolean {
-  const s = (digits || "").replace(/\D/g, "");
+  const s = onlyDigits(digits);
   if (s.length !== 11 || /^(\d)\1{10}$/.test(s)) return false;
   const calc = (len: number) => {
     let sum = 0;
@@ -35,7 +38,7 @@ function isValidCPF(digits: string): boolean {
   return calc(9) === parseInt(s[9], 10) && calc(10) === parseInt(s[10], 10);
 }
 function formatCPF(digits: string | null | undefined): string {
-  const s = (digits ?? "").replace(/\D/g, "").slice(0, 11);
+  const s = onlyDigits(digits).slice(0, 11);
   return s.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
 
@@ -73,7 +76,20 @@ export default function Cardapio() {
     notes: "", paymentMethod: "pix", changeFor: "",
   };
   const [checkout, setCheckout] = usePersistentState<CheckoutData>(CHECKOUT_KEY, defaultCheckout);
-  const { name, phone, cpf, orderType, zoneId, street, number, complement, reference, notes, paymentMethod, changeFor } = checkout;
+  const name = safeString(checkout?.name);
+  const phone = safeString(checkout?.phone);
+  const cpf = safeString(checkout?.cpf);
+  const orderType = checkout?.orderType === "pickup" ? "pickup" : "delivery";
+  const zoneId = safeString(checkout?.zoneId);
+  const street = safeString(checkout?.street);
+  const number = safeString(checkout?.number);
+  const complement = safeString(checkout?.complement);
+  const reference = safeString(checkout?.reference);
+  const notes = safeString(checkout?.notes);
+  const paymentMethod: CheckoutData["paymentMethod"] = ["cash", "pix", "credit", "debit", "card_delivery"].includes(checkout?.paymentMethod)
+    ? checkout.paymentMethod
+    : "pix";
+  const changeFor = safeString(checkout?.changeFor);
   const setName = (v: string) => setCheckout((c) => ({ ...c, name: v }));
   const setPhone = (v: string) => setCheckout((c) => ({ ...c, phone: v }));
   const setCpf = (v: string) => setCheckout((c) => ({ ...c, cpf: v }));
@@ -196,7 +212,7 @@ export default function Cardapio() {
   const downloadPixQr = () => {
     const a = document.createElement("a");
     a.href = pixQrDataUrl;
-    a.download = `pix-${formatBRL(total).replace(/\D/g, "")}.png`;
+    a.download = `pix-${onlyDigits(formatBRL(total))}.png`;
     a.click();
   };
 
@@ -284,7 +300,7 @@ export default function Cardapio() {
     lines.push(`*Total:* ${formatBRL(total)}`);
     lines.push("");
     lines.push("━━━━━━━━━━━━━━━");
-    const changeForNum = paymentMethod === "cash" && changeFor ? Number(changeFor.replace(",", ".")) : null;
+    const changeForNum = paymentMethod === "cash" && changeFor ? Number(safeString(changeFor).replace(",", ".")) : null;
     if (paymentMethod === "pix") {
       lines.push(paid ? `💸 *PIX PAGO E CONFIRMADO PELO BANCO* ✅` : `💸 *PIX — aguardando pagamento*`);
     } else if (paymentMethod === "credit") {
@@ -305,7 +321,7 @@ export default function Cardapio() {
 
   const sendWhatsapp = (orderNumber: number, paid: boolean) => {
     const msg = encodeURIComponent(buildWhatsappMessage(orderNumber, paid));
-    const wpp = (settings?.whatsapp_number ?? "").replace(/\D/g, "");
+    const wpp = onlyDigits(settings?.whatsapp_number);
     const url = wpp ? `https://wa.me/${wpp}?text=${msg}` : `https://wa.me/?text=${msg}`;
     window.open(url, "_blank");
   };
@@ -339,12 +355,12 @@ export default function Cardapio() {
     }
     if (!name.trim()) { logEvent(trace_id, scope, "validate", "Nome vazio", "warn"); return toast.error("Informe seu nome"); }
     if (!phone.trim()) { logEvent(trace_id, scope, "validate", "Telefone vazio", "warn"); return toast.error("Informe o telefone"); }
-    const phoneDigits = phone.replace(/\D/g, "");
+    const phoneDigits = onlyDigits(phone);
     if (phoneDigits.length !== 10 && phoneDigits.length !== 11) {
       logEvent(trace_id, scope, "validate", "Telefone inválido", "warn", { digits: phoneDigits.length });
       return toast.error("Informe um telefone válido com DDD");
     }
-    const cpfDigits = (cpf || "").replace(/\D/g, "");
+    const cpfDigits = onlyDigits(cpf);
     const needsCpf = paymentMethod === "pix" || paymentMethod === "credit" || paymentMethod === "debit";
     if (needsCpf && !isValidCPF(cpfDigits)) {
       logEvent(trace_id, scope, "validate", "CPF inválido", "warn");
@@ -354,7 +370,7 @@ export default function Cardapio() {
       if (!zoneId) { logEvent(trace_id, scope, "validate", "Bairro não selecionado", "warn"); return toast.error("Selecione o bairro"); }
       if (!street.trim() || !number.trim()) { logEvent(trace_id, scope, "validate", "Endereço incompleto", "warn"); return toast.error("Informe rua e número"); }
     }
-    const changeForNum = paymentMethod === "cash" && changeFor ? Number(changeFor.replace(",", ".")) : null;
+    const changeForNum = paymentMethod === "cash" && changeFor ? Number(safeString(changeFor).replace(",", ".")) : null;
     if (paymentMethod === "cash" && changeForNum !== null && (isNaN(changeForNum) || changeForNum < total)) {
       logEvent(trace_id, scope, "validate", "Troco inválido", "warn", { changeForNum, total });
       return toast.error("Troco para um valor maior que o total");
@@ -665,7 +681,7 @@ export default function Cardapio() {
                   <Label>CPF *</Label>
                   <Input
                     value={formatCPF(cpf)}
-                    onChange={(e) => setCpf(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                    onChange={(e) => setCpf(onlyDigits(e.target.value).slice(0, 11))}
                     placeholder="000.000.000-00"
                     inputMode="numeric"
                   />
