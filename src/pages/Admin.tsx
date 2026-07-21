@@ -274,7 +274,7 @@ export default function Admin() {
     if (!settingsId) return;
     const { error } = await supabase.from("store_settings").update({
       store_name: storeName.trim() || "Minha Loja",
-      whatsapp_number: whatsapp.replace(/\D/g, "") || null,
+      whatsapp_number: (whatsapp ?? "").replace(/\D/g, "") || null,
       welcome_message: welcome.trim() || null,
       menu_open: menuOpen,
       pix_key: pixKey.trim() || null,
