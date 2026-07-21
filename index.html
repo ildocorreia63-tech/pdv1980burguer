@@ -51,6 +51,10 @@
       border-top-color: #c8341a;
       animation: boot-spin 0.8s linear infinite;
     }
+    #boot-splash .boot-error { display: none; max-width: 280px; text-align: center; font: 500 14px/1.4 system-ui, sans-serif; color: #f1e7d3; }
+    #boot-splash .boot-error button { margin-top: 14px; border: 0; border-radius: 6px; padding: 10px 18px; background: #c8341a; color: #fff; font: 700 14px system-ui, sans-serif; cursor: pointer; }
+    #boot-splash.boot-splash--failed .spinner { display: none; }
+    #boot-splash.boot-splash--failed .boot-error { display: block; }
     #boot-splash.boot-splash--hidden { opacity: 0; pointer-events: none; }
     @keyframes boot-spin { to { transform: rotate(360deg); } }
     @media (prefers-color-scheme: dark) {
@@ -79,8 +83,23 @@ div[style*="Edit with Lovable"],
     <div id="boot-splash" aria-hidden="true">
       <img src="/icon-512.png" alt="" width="144" height="144" />
       <div class="spinner"></div>
+      <div class="boot-error">
+        Não foi possível concluir o carregamento.
+        <br />Verifique sua internet e tente novamente.
+        <br /><button type="button" onclick="window.location.reload()">Tentar novamente</button>
+      </div>
     </div>
     <div id="root"></div>
+    <script>
+      // Never leave an installed/cached app trapped behind the boot splash.
+      window.setTimeout(function () {
+        var splash = document.getElementById("boot-splash");
+        if (splash) {
+          splash.classList.add("boot-splash--failed");
+          splash.setAttribute("aria-hidden", "false");
+        }
+      }, 10000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
