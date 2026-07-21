@@ -34,8 +34,8 @@ function isValidCPF(digits: string): boolean {
   };
   return calc(9) === parseInt(s[9], 10) && calc(10) === parseInt(s[10], 10);
 }
-function formatCPF(digits: string): string {
-  const s = digits.replace(/\D/g, "").slice(0, 11);
+function formatCPF(digits: string | null | undefined): string {
+  const s = (digits ?? "").replace(/\D/g, "").slice(0, 11);
   return s.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
 }
 
