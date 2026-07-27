@@ -413,8 +413,15 @@ export default function Cardapio() {
       return toast.error("Informe um CPF válido (obrigatório para pagamento online)");
     }
     if (orderType === "delivery") {
-      if (!zoneId) { logEvent(trace_id, scope, "validate", "Bairro não selecionado", "warn"); return toast.error("Selecione o bairro"); }
       if (!street.trim() || !number.trim()) { logEvent(trace_id, scope, "validate", "Endereço incompleto", "warn"); return toast.error("Informe rua e número"); }
+      if (deliveryMode === "km") {
+        if (!kmQuote || kmQuote.no_delivery) {
+          logEvent(trace_id, scope, "validate", "Taxa por KM não calculada", "warn");
+          return toast.error("Clique em 'Calcular taxa' para o seu endereço");
+        }
+      } else {
+        if (!zoneId) { logEvent(trace_id, scope, "validate", "Bairro não selecionado", "warn"); return toast.error("Selecione o bairro"); }
+      }
     }
     const changeForNum = paymentMethod === "cash" && changeFor ? Number(safeString(changeFor).replace(",", ".")) : null;
     if (paymentMethod === "cash" && changeForNum !== null && (isNaN(changeForNum) || changeForNum < total)) {
