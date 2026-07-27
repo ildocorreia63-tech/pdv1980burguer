@@ -753,32 +753,62 @@ export default function Cardapio() {
 
             {orderType === "delivery" && (
               <div className="space-y-3 rounded-lg border border-border p-3">
-                <div>
-                  <Label>Bairro *</Label>
-                  {zones.length === 0 ? (
-                    <p className="text-xs text-destructive mt-1">Nenhum bairro cadastrado.</p>
-                  ) : (
-                    <RadioGroup value={zoneId} onValueChange={setZoneId} className="mt-2">
-                      {zones.map((z) => (
-                        <label key={z.id} className="flex items-center justify-between gap-2 rounded-md border border-border p-2 cursor-pointer">
-                          <div className="flex items-center gap-2">
-                            <RadioGroupItem value={z.id} id={z.id} />
-                            <span className="text-sm">{z.name}</span>
-                          </div>
-                          <span className="text-xs font-medium">{formatBRL(z.fee)}</span>
-                        </label>
-                      ))}
-                    </RadioGroup>
-                  )}
-                </div>
+                {deliveryMode === "zones" && (
+                  <div>
+                    <Label>Bairro *</Label>
+                    {zones.length === 0 ? (
+                      <p className="text-xs text-destructive mt-1">Nenhum bairro cadastrado.</p>
+                    ) : (
+                      <RadioGroup value={zoneId} onValueChange={setZoneId} className="mt-2">
+                        {zones.map((z) => (
+                          <label key={z.id} className="flex items-center justify-between gap-2 rounded-md border border-border p-2 cursor-pointer">
+                            <div className="flex items-center gap-2">
+                              <RadioGroupItem value={z.id} id={z.id} />
+                              <span className="text-sm">{z.name}</span>
+                            </div>
+                            <span className="text-xs font-medium">{formatBRL(z.fee)}</span>
+                          </label>
+                        ))}
+                      </RadioGroup>
+                    )}
+                  </div>
+                )}
                 <div className="grid grid-cols-3 gap-2">
                   <div className="col-span-2"><Label>Rua *</Label><Input value={street} onChange={(e) => setStreet(e.target.value)} /></div>
                   <div><Label>Nº *</Label><Input value={number} onChange={(e) => setNumber(e.target.value)} /></div>
                 </div>
                 <div><Label>Complemento</Label><Input value={complement} onChange={(e) => setComplement(e.target.value)} placeholder="Apto, bloco..." /></div>
-                <div><Label>Referência</Label><Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Próximo a..." /></div>
+                <div><Label>Referência (bairro/cidade)</Label><Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Bairro, cidade..." /></div>
+
+                {deliveryMode === "km" && (
+                  <div className="rounded-md border border-border p-2 space-y-2 bg-muted/30">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      disabled={kmLoading || !street.trim() || !number.trim()}
+                      onClick={calcKmFee}
+                    >
+                      {kmLoading ? "Calculando..." : "Calcular taxa de entrega"}
+                    </Button>
+                    {kmQuote && !kmQuote.no_delivery && (
+                      <div className="text-xs space-y-0.5">
+                        <div>Distância: <b>{kmQuote.distance_km} km</b> {kmQuote.tier_label && `· ${kmQuote.tier_label}`}</div>
+                        <div>Taxa: <b>{formatBRL(kmQuote.fee)}</b>{kmQuote.eta ? ` · ${kmQuote.eta} min` : ""}</div>
+                        {kmQuote.formatted_address && (
+                          <div className="text-[11px] text-muted-foreground truncate">{kmQuote.formatted_address}</div>
+                        )}
+                      </div>
+                    )}
+                    {kmQuote?.no_delivery && (
+                      <p className="text-xs text-destructive">{kmQuote.error ?? "Fora da área de entrega"}</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
+
 
             <div><Label>Observação</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Sem cebola, ponto da carne..." /></div>
 
