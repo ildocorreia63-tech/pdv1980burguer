@@ -198,9 +198,49 @@ export default function Cardapio() {
   const unavailableCount = cart.filter((x) => x.unavailable).length;
   const subtotal = cart.reduce((s, x) => s + (x.unavailable ? 0 : x.product.price * x.qty), 0);
   const totalQty = cart.reduce((s, x) => s + (x.unavailable ? 0 : x.qty), 0);
+
+  const deliveryMode: "zones" | "km" = settings?.delivery_mode === "km" ? "km" : "zones";
+  const [kmQuote, setKmQuote] = useState<{
+    distance_km: number; fee: number; tier_label: string | null; eta: string | null;
+    no_delivery?: boolean; error?: string; formatted_address?: string | null;
+  } | null>(null);
+  const [kmLoading, setKmLoading] = useState(false);
+
   const selectedZone = zones.find((z) => z.id === zoneId);
-  const deliveryFee = orderType === "delivery" ? (selectedZone?.fee ?? 0) : 0;
+  const zoneFee = deliveryMode === "zones" ? (selectedZone?.fee ?? 0) : 0;
+  const kmFee = deliveryMode === "km" && kmQuote && !kmQuote.no_delivery ? kmQuote.fee : 0;
+  const deliveryFee = orderType === "delivery" ? (deliveryMode === "km" ? kmFee : zoneFee) : 0;
   const total = subtotal + deliveryFee;
+
+  // Ao mudar endereço, invalida a cotação anterior
+  useEffect(() => { setKmQuote(null); }, [street, number, complement]);
+
+  const calcKmFee = async () => {
+    if (!street.trim() || !number.trim()) return toast.error("Informe rua e número");
+    setKmLoading(true);
+    setKmQuote(null);
+    try {
+      const address = `${street.trim()}, ${number.trim()}${complement.trim() ? " " + complement.trim() : ""}${reference.trim() ? " - " + reference.trim() : ""}, Brasil`;
+      const { data, error } = await supabase.functions.invoke("calc-delivery-fee", { body: { address } });
+      if (error) {
+        const ctx: any = (error as any).context;
+        let details = error.message;
+        try { if (ctx?.text) details = await ctx.text(); } catch {}
+        throw new Error(details);
+      }
+      setKmQuote(data as any);
+      if ((data as any)?.no_delivery) {
+        toast.error((data as any).error ?? "Fora da área de entrega");
+      } else {
+        toast.success(`Distância: ${(data as any).distance_km} km`);
+      }
+    } catch (e: any) {
+      toast.error("Não foi possível calcular a taxa: " + (e?.message ?? "erro"));
+    } finally {
+      setKmLoading(false);
+    }
+  };
+
 
   const paymentLabel = (m: string) => m === "cash" ? "Dinheiro" : m === "pix" ? "PIX" : m === "credit" ? "Crédito" : m === "debit" ? "Débito" : "Cartão na entrega";
 
