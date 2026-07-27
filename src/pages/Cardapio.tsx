@@ -47,7 +47,13 @@ type Product = { id: string; name: string; price: number; description: string | 
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
 type CartItem = { product: Product; qty: number; unavailable?: boolean };
-type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; business_hours: BusinessHours | null; banner_url: string | null; banner_enabled: boolean };
+type Settings = {
+  store_name: string; whatsapp_number: string | null; welcome_message: string | null;
+  menu_open: boolean; business_hours: BusinessHours | null;
+  banner_url: string | null; banner_enabled: boolean;
+  delivery_mode?: "zones" | "km"; store_address?: string | null;
+  delivery_km_tiers?: Array<{ max_km: number; price: number; free_from?: number; eta?: string; no_delivery?: boolean }>;
+};
 
 export default function Cardapio() {
   const [products, setProducts] = useState<Product[]>([]);
