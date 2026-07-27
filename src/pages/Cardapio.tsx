@@ -445,8 +445,12 @@ export default function Cardapio() {
         customer_name: name.trim(),
         customer_phone: phoneDigits,
         order_type: orderType,
-        delivery_zone_id: orderType === "delivery" ? zoneId : null,
-        delivery_zone_name: orderType === "delivery" ? selectedZone?.name : null,
+        delivery_zone_id: orderType === "delivery" && deliveryMode === "zones" ? zoneId : null,
+        delivery_zone_name: orderType === "delivery"
+          ? (deliveryMode === "km"
+              ? (kmQuote ? `${kmQuote.distance_km} km${kmQuote.tier_label ? " (" + kmQuote.tier_label + ")" : ""}` : null)
+              : selectedZone?.name)
+          : null,
         delivery_fee: deliveryFee,
         address_street: orderType === "delivery" ? street.trim() : null,
         address_number: orderType === "delivery" ? number.trim() : null,
