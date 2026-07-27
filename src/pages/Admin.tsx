@@ -117,6 +117,19 @@ export default function Admin() {
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [settingsId, setSettingsId] = useState<string | null>(null);
 
+  // Delivery mode (zones | km)
+  type KmTier = { max_km: number; price: number; free_from: number; eta: string; no_delivery: boolean };
+  const DEFAULT_KM_TIERS: KmTier[] = [
+    { max_km: 1, price: 4.99, free_from: 0, eta: "", no_delivery: false },
+    { max_km: 2, price: 6.99, free_from: 0, eta: "", no_delivery: false },
+    { max_km: 3, price: 7.99, free_from: 0, eta: "", no_delivery: false },
+    { max_km: 4, price: 8.99, free_from: 0, eta: "", no_delivery: false },
+    { max_km: 5, price: 11.99, free_from: 0, eta: "", no_delivery: false },
+  ];
+  const [deliveryMode, setDeliveryMode] = useState<"zones" | "km">("zones");
+  const [storeAddress, setStoreAddress] = useState("");
+  const [kmTiers, setKmTiers] = useState<KmTier[]>(DEFAULT_KM_TIERS);
+
   const load = async () => {
     const [{ data: p }, { data: c }, { data: z }, { data: s }] = await Promise.all([
       supabase.from("products").select("*").order("name"),
