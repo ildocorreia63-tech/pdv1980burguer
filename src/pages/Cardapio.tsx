@@ -333,7 +333,10 @@ export default function Cardapio() {
     lines.push("");
     lines.push(orderType === "delivery" ? "*Entrega*" : "*Retirada no local*");
     if (orderType === "delivery") {
-      lines.push(`Bairro: ${selectedZone?.name} (${formatBRL(deliveryFee)})`);
+      const areaLabel = deliveryMode === "km"
+        ? (kmQuote ? `${kmQuote.distance_km} km${kmQuote.tier_label ? " - " + kmQuote.tier_label : ""}` : "-")
+        : (selectedZone?.name ?? "-");
+      lines.push(`Área: ${areaLabel} (${formatBRL(deliveryFee)})`);
       lines.push(`Endereço: ${street}, ${number}${complement ? ` - ${complement}` : ""}`);
       if (reference) lines.push(`Referência: ${reference}`);
     }
