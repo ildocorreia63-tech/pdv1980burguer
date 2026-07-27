@@ -359,6 +359,9 @@ export type Database = {
           delivery_fee: number
           delivery_zone_id: string | null
           delivery_zone_name: string | null
+          external_order_id: string | null
+          external_payload: Json | null
+          external_platform: string | null
           id: string
           notes: string | null
           order_number: number
@@ -367,6 +370,7 @@ export type Database = {
           payment_confirmed_at: string | null
           payment_method: string | null
           sale_id: string | null
+          source: string
           status: Database["public"]["Enums"]["online_order_status"]
           subtotal: number
           total: number
@@ -390,6 +394,9 @@ export type Database = {
           delivery_fee?: number
           delivery_zone_id?: string | null
           delivery_zone_name?: string | null
+          external_order_id?: string | null
+          external_payload?: Json | null
+          external_platform?: string | null
           id?: string
           notes?: string | null
           order_number?: number
@@ -398,6 +405,7 @@ export type Database = {
           payment_confirmed_at?: string | null
           payment_method?: string | null
           sale_id?: string | null
+          source?: string
           status?: Database["public"]["Enums"]["online_order_status"]
           subtotal?: number
           total?: number
@@ -421,6 +429,9 @@ export type Database = {
           delivery_fee?: number
           delivery_zone_id?: string | null
           delivery_zone_name?: string | null
+          external_order_id?: string | null
+          external_payload?: Json | null
+          external_platform?: string | null
           id?: string
           notes?: string | null
           order_number?: number
@@ -429,6 +440,7 @@ export type Database = {
           payment_confirmed_at?: string | null
           payment_method?: string | null
           sale_id?: string | null
+          source?: string
           status?: Database["public"]["Enums"]["online_order_status"]
           subtotal?: number
           total?: number
