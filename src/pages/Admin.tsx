@@ -153,6 +153,16 @@ export default function Admin() {
       setHours({ ...DEFAULT_HOURS, ...(sx.business_hours ?? {}) });
       setBannerUrl(sx.banner_url ?? null);
       setBannerEnabled(sx.banner_enabled ?? true);
+      setDeliveryMode((sx.delivery_mode as "zones" | "km") ?? "zones");
+      setStoreAddress(sx.store_address ?? "");
+      const tiersRaw = Array.isArray(sx.delivery_km_tiers) ? sx.delivery_km_tiers : [];
+      setKmTiers(tiersRaw.length > 0 ? tiersRaw.map((t: any) => ({
+        max_km: Number(t.max_km) || 0,
+        price: Number(t.price) || 0,
+        free_from: Number(t.free_from) || 0,
+        eta: String(t.eta ?? ""),
+        no_delivery: !!t.no_delivery,
+      })) : DEFAULT_KM_TIERS);
     }
   };
 
