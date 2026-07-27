@@ -707,11 +707,16 @@ export type Database = {
           banner_url: string | null
           business_hours: Json
           created_at: string
+          delivery_km_tiers: Json
+          delivery_mode: string
           id: string
           menu_open: boolean
           pix_city: string | null
           pix_key: string | null
           pix_receiver_name: string | null
+          store_address: string | null
+          store_lat: number | null
+          store_lng: number | null
           store_name: string
           updated_at: string
           welcome_message: string | null
@@ -722,11 +727,16 @@ export type Database = {
           banner_url?: string | null
           business_hours?: Json
           created_at?: string
+          delivery_km_tiers?: Json
+          delivery_mode?: string
           id?: string
           menu_open?: boolean
           pix_city?: string | null
           pix_key?: string | null
           pix_receiver_name?: string | null
+          store_address?: string | null
+          store_lat?: number | null
+          store_lng?: number | null
           store_name?: string
           updated_at?: string
           welcome_message?: string | null
@@ -737,11 +747,16 @@ export type Database = {
           banner_url?: string | null
           business_hours?: Json
           created_at?: string
+          delivery_km_tiers?: Json
+          delivery_mode?: string
           id?: string
           menu_open?: boolean
           pix_city?: string | null
           pix_key?: string | null
           pix_receiver_name?: string | null
+          store_address?: string | null
+          store_lat?: number | null
+          store_lng?: number | null
           store_name?: string
           updated_at?: string
           welcome_message?: string | null
@@ -777,8 +792,13 @@ export type Database = {
           banner_enabled: boolean | null
           banner_url: string | null
           business_hours: Json | null
+          delivery_km_tiers: Json | null
+          delivery_mode: string | null
           id: string | null
           menu_open: boolean | null
+          store_address: string | null
+          store_lat: number | null
+          store_lng: number | null
           store_name: string | null
           welcome_message: string | null
           whatsapp_number: string | null
@@ -787,8 +807,13 @@ export type Database = {
           banner_enabled?: boolean | null
           banner_url?: string | null
           business_hours?: Json | null
+          delivery_km_tiers?: Json | null
+          delivery_mode?: string | null
           id?: string | null
           menu_open?: boolean | null
+          store_address?: string | null
+          store_lat?: number | null
+          store_lng?: number | null
           store_name?: string | null
           welcome_message?: string | null
           whatsapp_number?: string | null
@@ -797,8 +822,13 @@ export type Database = {
           banner_enabled?: boolean | null
           banner_url?: string | null
           business_hours?: Json | null
+          delivery_km_tiers?: Json | null
+          delivery_mode?: string | null
           id?: string | null
           menu_open?: boolean | null
+          store_address?: string | null
+          store_lat?: number | null
+          store_lng?: number | null
           store_name?: string | null
           welcome_message?: string | null
           whatsapp_number?: string | null

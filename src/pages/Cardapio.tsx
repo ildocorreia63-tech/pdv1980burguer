@@ -47,7 +47,13 @@ type Product = { id: string; name: string; price: number; description: string | 
 type Category = { id: string; name: string };
 type Zone = { id: string; name: string; fee: number };
 type CartItem = { product: Product; qty: number; unavailable?: boolean };
-type Settings = { store_name: string; whatsapp_number: string | null; welcome_message: string | null; menu_open: boolean; business_hours: BusinessHours | null; banner_url: string | null; banner_enabled: boolean };
+type Settings = {
+  store_name: string; whatsapp_number: string | null; welcome_message: string | null;
+  menu_open: boolean; business_hours: BusinessHours | null;
+  banner_url: string | null; banner_enabled: boolean;
+  delivery_mode?: "zones" | "km"; store_address?: string | null;
+  delivery_km_tiers?: Array<{ max_km: number; price: number; free_from?: number; eta?: string; no_delivery?: boolean }>;
+};
 
 export default function Cardapio() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -149,7 +155,7 @@ export default function Cardapio() {
       const [c, z, s] = await Promise.all([
         supabase.from("categories").select("id,name").order("sort_order"),
         supabase.from("delivery_zones").select("id,name,fee").eq("active", true).order("sort_order"),
-        supabase.from("public_store_settings" as any).select("store_name,whatsapp_number,welcome_message,menu_open,business_hours,banner_url,banner_enabled").maybeSingle(),
+        supabase.from("public_store_settings" as any).select("store_name,whatsapp_number,welcome_message,menu_open,business_hours,banner_url,banner_enabled,delivery_mode,store_address,delivery_km_tiers").maybeSingle(),
       ]);
       setCats(c.data ?? []);
       setZones((z.data ?? []).map((x) => ({ ...x, fee: Number(x.fee) })));
@@ -192,9 +198,49 @@ export default function Cardapio() {
   const unavailableCount = cart.filter((x) => x.unavailable).length;
   const subtotal = cart.reduce((s, x) => s + (x.unavailable ? 0 : x.product.price * x.qty), 0);
   const totalQty = cart.reduce((s, x) => s + (x.unavailable ? 0 : x.qty), 0);
+
+  const deliveryMode: "zones" | "km" = settings?.delivery_mode === "km" ? "km" : "zones";
+  const [kmQuote, setKmQuote] = useState<{
+    distance_km: number; fee: number; tier_label: string | null; eta: string | null;
+    no_delivery?: boolean; error?: string; formatted_address?: string | null;
+  } | null>(null);
+  const [kmLoading, setKmLoading] = useState(false);
+
   const selectedZone = zones.find((z) => z.id === zoneId);
-  const deliveryFee = orderType === "delivery" ? (selectedZone?.fee ?? 0) : 0;
+  const zoneFee = deliveryMode === "zones" ? (selectedZone?.fee ?? 0) : 0;
+  const kmFee = deliveryMode === "km" && kmQuote && !kmQuote.no_delivery ? kmQuote.fee : 0;
+  const deliveryFee = orderType === "delivery" ? (deliveryMode === "km" ? kmFee : zoneFee) : 0;
   const total = subtotal + deliveryFee;
+
+  // Ao mudar endereço, invalida a cotação anterior
+  useEffect(() => { setKmQuote(null); }, [street, number, complement]);
+
+  const calcKmFee = async () => {
+    if (!street.trim() || !number.trim()) return toast.error("Informe rua e número");
+    setKmLoading(true);
+    setKmQuote(null);
+    try {
+      const address = `${street.trim()}, ${number.trim()}${complement.trim() ? " " + complement.trim() : ""}${reference.trim() ? " - " + reference.trim() : ""}, Brasil`;
+      const { data, error } = await supabase.functions.invoke("calc-delivery-fee", { body: { address } });
+      if (error) {
+        const ctx: any = (error as any).context;
+        let details = error.message;
+        try { if (ctx?.text) details = await ctx.text(); } catch {}
+        throw new Error(details);
+      }
+      setKmQuote(data as any);
+      if ((data as any)?.no_delivery) {
+        toast.error((data as any).error ?? "Fora da área de entrega");
+      } else {
+        toast.success(`Distância: ${(data as any).distance_km} km`);
+      }
+    } catch (e: any) {
+      toast.error("Não foi possível calcular a taxa: " + (e?.message ?? "erro"));
+    } finally {
+      setKmLoading(false);
+    }
+  };
+
 
   const paymentLabel = (m: string) => m === "cash" ? "Dinheiro" : m === "pix" ? "PIX" : m === "credit" ? "Crédito" : m === "debit" ? "Débito" : "Cartão na entrega";
 
@@ -287,7 +333,10 @@ export default function Cardapio() {
     lines.push("");
     lines.push(orderType === "delivery" ? "*Entrega*" : "*Retirada no local*");
     if (orderType === "delivery") {
-      lines.push(`Bairro: ${selectedZone?.name} (${formatBRL(deliveryFee)})`);
+      const areaLabel = deliveryMode === "km"
+        ? (kmQuote ? `${kmQuote.distance_km} km${kmQuote.tier_label ? " - " + kmQuote.tier_label : ""}` : "-")
+        : (selectedZone?.name ?? "-");
+      lines.push(`Área: ${areaLabel} (${formatBRL(deliveryFee)})`);
       lines.push(`Endereço: ${street}, ${number}${complement ? ` - ${complement}` : ""}`);
       if (reference) lines.push(`Referência: ${reference}`);
     }
@@ -367,8 +416,15 @@ export default function Cardapio() {
       return toast.error("Informe um CPF válido (obrigatório para pagamento online)");
     }
     if (orderType === "delivery") {
-      if (!zoneId) { logEvent(trace_id, scope, "validate", "Bairro não selecionado", "warn"); return toast.error("Selecione o bairro"); }
       if (!street.trim() || !number.trim()) { logEvent(trace_id, scope, "validate", "Endereço incompleto", "warn"); return toast.error("Informe rua e número"); }
+      if (deliveryMode === "km") {
+        if (!kmQuote || kmQuote.no_delivery) {
+          logEvent(trace_id, scope, "validate", "Taxa por KM não calculada", "warn");
+          return toast.error("Clique em 'Calcular taxa' para o seu endereço");
+        }
+      } else {
+        if (!zoneId) { logEvent(trace_id, scope, "validate", "Bairro não selecionado", "warn"); return toast.error("Selecione o bairro"); }
+      }
     }
     const changeForNum = paymentMethod === "cash" && changeFor ? Number(safeString(changeFor).replace(",", ".")) : null;
     if (paymentMethod === "cash" && changeForNum !== null && (isNaN(changeForNum) || changeForNum < total)) {
@@ -392,8 +448,12 @@ export default function Cardapio() {
         customer_name: name.trim(),
         customer_phone: phoneDigits,
         order_type: orderType,
-        delivery_zone_id: orderType === "delivery" ? zoneId : null,
-        delivery_zone_name: orderType === "delivery" ? selectedZone?.name : null,
+        delivery_zone_id: orderType === "delivery" && deliveryMode === "zones" ? zoneId : null,
+        delivery_zone_name: orderType === "delivery"
+          ? (deliveryMode === "km"
+              ? (kmQuote ? `${kmQuote.distance_km} km${kmQuote.tier_label ? " (" + kmQuote.tier_label + ")" : ""}` : null)
+              : selectedZone?.name)
+          : null,
         delivery_fee: deliveryFee,
         address_street: orderType === "delivery" ? street.trim() : null,
         address_number: orderType === "delivery" ? number.trim() : null,
@@ -693,32 +753,62 @@ export default function Cardapio() {
 
             {orderType === "delivery" && (
               <div className="space-y-3 rounded-lg border border-border p-3">
-                <div>
-                  <Label>Bairro *</Label>
-                  {zones.length === 0 ? (
-                    <p className="text-xs text-destructive mt-1">Nenhum bairro cadastrado.</p>
-                  ) : (
-                    <RadioGroup value={zoneId} onValueChange={setZoneId} className="mt-2">
-                      {zones.map((z) => (
-                        <label key={z.id} className="flex items-center justify-between gap-2 rounded-md border border-border p-2 cursor-pointer">
-                          <div className="flex items-center gap-2">
-                            <RadioGroupItem value={z.id} id={z.id} />
-                            <span className="text-sm">{z.name}</span>
-                          </div>
-                          <span className="text-xs font-medium">{formatBRL(z.fee)}</span>
-                        </label>
-                      ))}
-                    </RadioGroup>
-                  )}
-                </div>
+                {deliveryMode === "zones" && (
+                  <div>
+                    <Label>Bairro *</Label>
+                    {zones.length === 0 ? (
+                      <p className="text-xs text-destructive mt-1">Nenhum bairro cadastrado.</p>
+                    ) : (
+                      <RadioGroup value={zoneId} onValueChange={setZoneId} className="mt-2">
+                        {zones.map((z) => (
+                          <label key={z.id} className="flex items-center justify-between gap-2 rounded-md border border-border p-2 cursor-pointer">
+                            <div className="flex items-center gap-2">
+                              <RadioGroupItem value={z.id} id={z.id} />
+                              <span className="text-sm">{z.name}</span>
+                            </div>
+                            <span className="text-xs font-medium">{formatBRL(z.fee)}</span>
+                          </label>
+                        ))}
+                      </RadioGroup>
+                    )}
+                  </div>
+                )}
                 <div className="grid grid-cols-3 gap-2">
                   <div className="col-span-2"><Label>Rua *</Label><Input value={street} onChange={(e) => setStreet(e.target.value)} /></div>
                   <div><Label>Nº *</Label><Input value={number} onChange={(e) => setNumber(e.target.value)} /></div>
                 </div>
                 <div><Label>Complemento</Label><Input value={complement} onChange={(e) => setComplement(e.target.value)} placeholder="Apto, bloco..." /></div>
-                <div><Label>Referência</Label><Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Próximo a..." /></div>
+                <div><Label>Referência (bairro/cidade)</Label><Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Bairro, cidade..." /></div>
+
+                {deliveryMode === "km" && (
+                  <div className="rounded-md border border-border p-2 space-y-2 bg-muted/30">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      disabled={kmLoading || !street.trim() || !number.trim()}
+                      onClick={calcKmFee}
+                    >
+                      {kmLoading ? "Calculando..." : "Calcular taxa de entrega"}
+                    </Button>
+                    {kmQuote && !kmQuote.no_delivery && (
+                      <div className="text-xs space-y-0.5">
+                        <div>Distância: <b>{kmQuote.distance_km} km</b> {kmQuote.tier_label && `· ${kmQuote.tier_label}`}</div>
+                        <div>Taxa: <b>{formatBRL(kmQuote.fee)}</b>{kmQuote.eta ? ` · ${kmQuote.eta} min` : ""}</div>
+                        {kmQuote.formatted_address && (
+                          <div className="text-[11px] text-muted-foreground truncate">{kmQuote.formatted_address}</div>
+                        )}
+                      </div>
+                    )}
+                    {kmQuote?.no_delivery && (
+                      <p className="text-xs text-destructive">{kmQuote.error ?? "Fora da área de entrega"}</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
+
 
             <div><Label>Observação</Label><Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Sem cebola, ponto da carne..." /></div>
 
