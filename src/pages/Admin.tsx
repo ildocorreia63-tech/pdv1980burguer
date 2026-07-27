@@ -295,6 +295,26 @@ export default function Admin() {
 
   const saveSettings = async () => {
     if (!settingsId) return;
+    // Se o modo é KM, valida e limpa cache de geocoding quando o endereço muda
+    let clearLatLng: Record<string, null> = {};
+    if (deliveryMode === "km") {
+      if (!storeAddress.trim()) return toast.error("Informe o endereço da loja para calcular por KM");
+      const { data: current } = await supabase.from("store_settings").select("store_address").eq("id", settingsId).maybeSingle();
+      if ((current as any)?.store_address !== storeAddress.trim()) {
+        clearLatLng = { store_lat: null, store_lng: null };
+      }
+    }
+    const cleanTiers = kmTiers
+      .filter((t) => Number(t.max_km) > 0)
+      .map((t) => ({
+        max_km: Number(t.max_km),
+        price: Number(t.price) || 0,
+        free_from: Number(t.free_from) || 0,
+        eta: (t.eta ?? "").trim(),
+        no_delivery: !!t.no_delivery,
+      }))
+      .sort((a, b) => a.max_km - b.max_km);
+
     const { error } = await supabase.from("store_settings").update({
       store_name: storeName.trim() || "Minha Loja",
       whatsapp_number: (whatsapp ?? "").replace(/\D/g, "") || null,
@@ -306,10 +326,15 @@ export default function Admin() {
       business_hours: hours,
       banner_url: bannerUrl,
       banner_enabled: bannerEnabled,
+      delivery_mode: deliveryMode,
+      store_address: storeAddress.trim() || null,
+      delivery_km_tiers: cleanTiers,
+      ...clearLatLng,
     } as any).eq("id", settingsId);
     if (error) return toast.error(error.message);
     toast.success("Configurações salvas");
   };
+
 
   const handleBannerUpload = async (file: File) => {
     if (!file) return;
