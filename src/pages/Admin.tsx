@@ -652,6 +652,140 @@ export default function Admin() {
               </div>
             </div>
 
+            {/* Modo de entrega */}
+            <div className="rounded-lg border border-border p-3 space-y-3">
+              <p className="font-display text-sm">Taxa de entrega</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMode("zones")}
+                  className={cn(
+                    "rounded-lg border-2 p-2 text-xs font-medium transition",
+                    deliveryMode === "zones" ? "border-primary bg-primary/10" : "border-border bg-card"
+                  )}
+                >
+                  Por bairro (fixo)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMode("km")}
+                  className={cn(
+                    "rounded-lg border-2 p-2 text-xs font-medium transition",
+                    deliveryMode === "km" ? "border-primary bg-primary/10" : "border-border bg-card"
+                  )}
+                >
+                  Por KM (Google Maps)
+                </button>
+              </div>
+
+              {deliveryMode === "km" && (
+                <div className="space-y-3">
+                  <div>
+                    <Label>Endereço da loja *</Label>
+                    <Input
+                      value={storeAddress}
+                      onChange={(e) => setStoreAddress(e.target.value)}
+                      placeholder="Rua, número, bairro, cidade - UF"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Usado como ponto de partida para calcular a distância.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Faixas de KM</Label>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setKmTiers((t) => [
+                            ...t,
+                            { max_km: (t[t.length - 1]?.max_km ?? 0) + 1, price: 0, free_from: 0, eta: "", no_delivery: false },
+                          ])
+                        }
+                      >
+                        + Faixa
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-12 gap-1 text-[10px] text-muted-foreground px-1">
+                      <div className="col-span-2">Até (km)</div>
+                      <div className="col-span-3">Taxa (R$)</div>
+                      <div className="col-span-3">Grátis a partir</div>
+                      <div className="col-span-3">Tempo (min)</div>
+                      <div className="col-span-1"></div>
+                    </div>
+                    {kmTiers.map((tier, idx) => (
+                      <div key={idx} className="grid grid-cols-12 gap-1 items-center">
+                        <Input
+                          className="col-span-2 h-8 text-xs"
+                          type="number"
+                          step="0.1"
+                          value={tier.max_km}
+                          onChange={(e) => {
+                            const v = Number(e.target.value);
+                            setKmTiers((arr) => arr.map((t, i) => i === idx ? { ...t, max_km: v } : t));
+                          }}
+                        />
+                        <Input
+                          className="col-span-3 h-8 text-xs"
+                          type="number"
+                          step="0.01"
+                          value={tier.price}
+                          disabled={tier.no_delivery}
+                          onChange={(e) => {
+                            const v = Number(e.target.value);
+                            setKmTiers((arr) => arr.map((t, i) => i === idx ? { ...t, price: v } : t));
+                          }}
+                        />
+                        <Input
+                          className="col-span-3 h-8 text-xs"
+                          type="number"
+                          step="0.01"
+                          placeholder="0"
+                          value={tier.free_from}
+                          onChange={(e) => {
+                            const v = Number(e.target.value);
+                            setKmTiers((arr) => arr.map((t, i) => i === idx ? { ...t, free_from: v } : t));
+                          }}
+                        />
+                        <Input
+                          className="col-span-3 h-8 text-xs"
+                          placeholder="ex: 30-45"
+                          value={tier.eta}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setKmTiers((arr) => arr.map((t, i) => i === idx ? { ...t, eta: v } : t));
+                          }}
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="col-span-1 h-8 w-8 text-destructive"
+                          onClick={() => setKmTiers((arr) => arr.filter((_, i) => i !== idx))}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                        <label className="col-span-12 flex items-center gap-2 text-[11px] text-muted-foreground pl-1">
+                          <input
+                            type="checkbox"
+                            checked={tier.no_delivery}
+                            onChange={(e) => setKmTiers((arr) => arr.map((t, i) => i === idx ? { ...t, no_delivery: e.target.checked } : t))}
+                          />
+                          Não entregar nesta faixa
+                        </label>
+                      </div>
+                    ))}
+                    <p className="text-[11px] text-muted-foreground">
+                      A menor faixa que cobre a distância é usada. Acima da maior faixa, o cliente vê "fora da área".
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+
+
 
             <div className="rounded-lg border border-border p-3 space-y-2">
               <p className="font-display text-sm">PIX (para gerar QR Code no cardápio)</p>
