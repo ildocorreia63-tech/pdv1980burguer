@@ -48,11 +48,38 @@ type Order = {
   items?: Item[];
 };
 
-const audio = typeof window !== "undefined"
-  ? new Audio("data:audio/wav;base64,UklGRnQGAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YVAGAAA=")
-  : null;
+// Alerta sonoro real via WebAudio (o arquivo base64 anterior era silencioso).
+// Tocamos uma sequência curta de bipes para chamar atenção na cozinha.
+let audioCtx: AudioContext | null = null;
+const beep = (times = 3) => {
+  try {
+    const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!Ctx) return;
+    audioCtx = audioCtx ?? new Ctx();
+    if (audioCtx!.state === "suspended") audioCtx!.resume().catch(() => {});
+    const start = audioCtx!.currentTime;
+    for (let i = 0; i < times; i++) {
+      const t = start + i * 0.28;
+      const osc = audioCtx!.createOscillator();
+      const gain = audioCtx!.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(i % 2 === 0 ? 880 : 1175, t);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      osc.connect(gain).connect(audioCtx!.destination);
+      osc.start(t);
+      osc.stop(t + 0.24);
+    }
+  } catch {
+    /* áudio bloqueado pelo navegador — o alerta visual continua funcionando */
+  }
+};
 
-const beep = () => { try { audio?.play?.().catch(() => {}); } catch {} };
+const vibrate = () => {
+  try { navigator.vibrate?.([200, 100, 200]); } catch { /* sem suporte */ }
+};
+
 
 const statusMeta: Record<Status, { label: string; color: string; icon: any }> = {
   pending_payment: { label: "Aguard. PIX", color: "bg-amber-500/15 text-amber-700 border-amber-500/30", icon: Clock },
