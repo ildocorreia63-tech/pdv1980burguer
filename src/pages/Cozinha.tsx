@@ -439,6 +439,79 @@ export default function Cozinha() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Pedido em destaque — abre sozinho ao chegar/aceitar, com alerta visual */}
+      <Dialog open={!!spotlight} onOpenChange={(v) => !v && setSpotlight(null)}>
+        <DialogContent className="max-w-3xl sm:max-w-3xl w-[96vw] max-h-[92vh] overflow-y-auto border-4 border-primary animate-scale-in">
+          {spotlight && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-display text-4xl flex items-center gap-3 flex-wrap">
+                  <span className="animate-pulse">🔔</span>
+                  Pedido #{spotlight.order_number}
+                  <Badge className={cn("border text-base", statusMeta[spotlight.status].color)}>
+                    {statusMeta[spotlight.status].label}
+                  </Badge>
+                </DialogTitle>
+                <DialogDescription className="text-base">
+                  {spotlight.customer_name} · {spotlight.customer_phone} ·{" "}
+                  {spotlight.order_type === "delivery" ? "Entrega" : "Retirada"}
+                </DialogDescription>
+              </DialogHeader>
+
+              {spotlight.order_type === "delivery" && spotlight.address_street && (
+                <p className="text-lg bg-muted/40 rounded p-3">
+                  📍 {spotlight.address_street}, {spotlight.address_number}
+                  {spotlight.address_complement && ` · ${spotlight.address_complement}`}
+                  {spotlight.address_reference && ` · Ref.: ${spotlight.address_reference}`}
+                </p>
+              )}
+
+              <ul className="divide-y divide-border border-y border-border">
+                {(spotlight.items ?? []).map((i, idx) => (
+                  <li key={idx} className="flex justify-between items-center py-3">
+                    <span className="text-2xl">
+                      <strong className="text-primary">{i.quantity}x</strong> {i.product_name}
+                    </span>
+                    <span className="text-muted-foreground text-lg">R$ {i.subtotal.toFixed(2)}</span>
+                  </li>
+                ))}
+                {(spotlight.items ?? []).length === 0 && (
+                  <li className="py-3 text-muted-foreground">Este pedido não possui itens registrados.</li>
+                )}
+              </ul>
+
+              {spotlight.notes && (
+                <p className="text-lg bg-amber-500/10 border border-amber-500/30 rounded p-3">
+                  📝 {spotlight.notes}
+                </p>
+              )}
+
+              <div className="flex justify-between items-center text-2xl font-display">
+                <span>Total</span>
+                <span>R$ {spotlight.total.toFixed(2)}</span>
+              </div>
+
+              <DialogFooter className="gap-2">
+                <Button variant="outline" size="lg" onClick={() => setSpotlight(null)}>
+                  Fechar
+                </Button>
+                {spotlight.status === "pending" && (
+                  <Button size="lg" onClick={() => markAccepted(spotlight)}>
+                    <ChefHat className="h-5 w-5 mr-2" />Iniciar preparo
+                  </Button>
+                )}
+                {spotlight.status === "accepted" && (
+                  <Button size="lg" onClick={() => markCompleted(spotlight)}>
+                    <CheckCircle2 className="h-5 w-5 mr-2" />Marcar como pronto
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
+
 }
