@@ -908,6 +908,63 @@ export default function Admin() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Zerar sistema */}
+      <Dialog open={resetOpen} onOpenChange={(v) => { setResetOpen(v); if (!v) { setResetConfirm(""); setResetStock(false); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" /> Zerar sistema
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs space-y-1">
+              <p className="font-semibold text-destructive">Esta ação é definitiva e não pode ser desfeita.</p>
+              <p className="text-muted-foreground">Serão apagados:</p>
+              <ul className="list-disc pl-4 text-muted-foreground">
+                <li>Todas as vendas e itens de venda</li>
+                <li>Todos os pagamentos e saldos de fiado</li>
+                <li>Todas as despesas</li>
+                <li>Todos os pedidos online e do cardápio</li>
+                <li>Caixas, sangrias e movimentações de estoque</li>
+              </ul>
+              <p className="text-muted-foreground">
+                <strong>Não</strong> serão apagados: produtos, categorias, insumos, fichas técnicas, clientes e configurações da loja.
+              </p>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={resetStock} onCheckedChange={setResetStock} />
+              Também zerar o estoque atual dos insumos
+            </label>
+
+            <div>
+              <Label>Digite <span className="font-mono text-destructive">ZERAR</span> para confirmar</Label>
+              <Input
+                className="mt-1"
+                value={resetConfirm}
+                onChange={(e) => setResetConfirm(e.target.value)}
+                placeholder="ZERAR"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setResetOpen(false)}>Cancelar</Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={runReset}
+                disabled={resetLoading || resetConfirm.trim().toUpperCase() !== "ZERAR"}
+              >
+                {resetLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+                Zerar tudo
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
+
