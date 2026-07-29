@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
-import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon, Upload, ImageIcon, Loader2, Clock, Boxes, ClipboardList, Webhook } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon, Upload, ImageIcon, Loader2, Clock, Boxes, ClipboardList, Webhook, RotateCcw, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { BusinessHours, DEFAULT_HOURS, WEEKDAYS } from "@/lib/businessHours";
@@ -56,6 +56,43 @@ export default function Admin() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [catOpen, setCatOpen] = useState(false);
   const [newCatName, setNewCatName] = useState("");
+
+  // Reinício do sistema (zerar movimento operacional)
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetConfirm, setResetConfirm] = useState("");
+  const [resetStock, setResetStock] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const runReset = async () => {
+    // Dupla proteção: exige a palavra exata antes de qualquer chamada ao banco.
+    if (resetConfirm.trim().toUpperCase() !== "ZERAR") {
+      toast.error('Digite ZERAR para confirmar');
+      return;
+    }
+    setResetLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("reset_operational_data" as any, { _reset_stock: resetStock });
+      if (error) throw error;
+      const r = (data ?? {}) as { sales?: number; expenses?: number; orders?: number };
+      toast.success(
+        `Sistema zerado: ${r.sales ?? 0} venda(s), ${r.expenses ?? 0} despesa(s) e ${r.orders ?? 0} pedido(s) apagados`,
+      );
+      // Limpa carrinhos/checkout salvos localmente para não reaparecerem.
+      try {
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith("pdv:") || k.startsWith("cardapio:"))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch { /* storage indisponível */ }
+      setResetOpen(false);
+      setResetConfirm("");
+      setResetStock(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Não foi possível zerar os dados");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
 
   // Simulador de webhook Asaas
   const [simOpen, setSimOpen] = useState(false);
@@ -396,6 +433,10 @@ export default function Admin() {
           <Button size="icon" variant="outline" onClick={() => setSimOpen(true)} title="Testar webhook Asaas">
             <Webhook className="h-4 w-4" />
           </Button>
+          <Button size="icon" variant="outline" className="text-destructive" onClick={() => setResetOpen(true)} title="Zerar sistema">
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+
           <Button size="icon" variant="outline" onClick={openNew} title="Novo produto">
             <Plus className="h-4 w-4" />
           </Button>
@@ -867,6 +908,63 @@ export default function Admin() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Zerar sistema */}
+      <Dialog open={resetOpen} onOpenChange={(v) => { setResetOpen(v); if (!v) { setResetConfirm(""); setResetStock(false); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" /> Zerar sistema
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs space-y-1">
+              <p className="font-semibold text-destructive">Esta ação é definitiva e não pode ser desfeita.</p>
+              <p className="text-muted-foreground">Serão apagados:</p>
+              <ul className="list-disc pl-4 text-muted-foreground">
+                <li>Todas as vendas e itens de venda</li>
+                <li>Todos os pagamentos e saldos de fiado</li>
+                <li>Todas as despesas</li>
+                <li>Todos os pedidos online e do cardápio</li>
+                <li>Caixas, sangrias e movimentações de estoque</li>
+              </ul>
+              <p className="text-muted-foreground">
+                <strong>Não</strong> serão apagados: produtos, categorias, insumos, fichas técnicas, clientes e configurações da loja.
+              </p>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={resetStock} onCheckedChange={setResetStock} />
+              Também zerar o estoque atual dos insumos
+            </label>
+
+            <div>
+              <Label>Digite <span className="font-mono text-destructive">ZERAR</span> para confirmar</Label>
+              <Input
+                className="mt-1"
+                value={resetConfirm}
+                onChange={(e) => setResetConfirm(e.target.value)}
+                placeholder="ZERAR"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setResetOpen(false)}>Cancelar</Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={runReset}
+                disabled={resetLoading || resetConfirm.trim().toUpperCase() !== "ZERAR"}
+              >
+                {resetLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+                Zerar tudo
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
+
