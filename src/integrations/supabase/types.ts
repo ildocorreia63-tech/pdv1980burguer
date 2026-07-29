@@ -863,6 +863,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      reset_operational_data: {
+        Args: { _reset_stock?: boolean }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "operator"
