@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Bell, Search, Clock, CheckCircle2, ChefHat, Receipt, Bike, ShoppingBag, XCircle, Ban } from "lucide-react";
+import { Bell, Search, Clock, CheckCircle2, ChefHat, Receipt, Bike, ShoppingBag, XCircle, Ban, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Status = "pending_payment" | "pending" | "accepted" | "completed" | "rejected";
@@ -48,11 +48,38 @@ type Order = {
   items?: Item[];
 };
 
-const audio = typeof window !== "undefined"
-  ? new Audio("data:audio/wav;base64,UklGRnQGAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YVAGAAA=")
-  : null;
+// Alerta sonoro real via WebAudio (o arquivo base64 anterior era silencioso).
+// Tocamos uma sequência curta de bipes para chamar atenção na cozinha.
+let audioCtx: AudioContext | null = null;
+const beep = (times = 3) => {
+  try {
+    const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!Ctx) return;
+    audioCtx = audioCtx ?? new Ctx();
+    if (audioCtx!.state === "suspended") audioCtx!.resume().catch(() => {});
+    const start = audioCtx!.currentTime;
+    for (let i = 0; i < times; i++) {
+      const t = start + i * 0.28;
+      const osc = audioCtx!.createOscillator();
+      const gain = audioCtx!.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(i % 2 === 0 ? 880 : 1175, t);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      osc.connect(gain).connect(audioCtx!.destination);
+      osc.start(t);
+      osc.stop(t + 0.24);
+    }
+  } catch {
+    /* áudio bloqueado pelo navegador — o alerta visual continua funcionando */
+  }
+};
 
-const beep = () => { try { audio?.play?.().catch(() => {}); } catch {} };
+const vibrate = () => {
+  try { navigator.vibrate?.([200, 100, 200]); } catch { /* sem suporte */ }
+};
+
 
 const statusMeta: Record<Status, { label: string; color: string; icon: any }> = {
   pending_payment: { label: "Aguard. PIX", color: "bg-amber-500/15 text-amber-700 border-amber-500/30", icon: Clock },
@@ -78,6 +105,13 @@ export default function Cozinha() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [soundOn, setSoundOn] = useState(true);
+  // Pedido em destaque: abre em tela cheia assim que chega/é aceito.
+  const [spotlight, setSpotlight] = useState<Order | null>(null);
+  const soundRef = useRef(soundOn);
+  soundRef.current = soundOn;
+  // Guarda o status anterior de cada pedido para detectar transições.
+  const prevStatus = useRef<Map<string, Status>>(new Map());
+  const firstLoad = useRef(true);
 
   const load = async () => {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -105,7 +139,32 @@ export default function Cozinha() {
       });
       ords.forEach((o) => (o.items = by.get(o.id) ?? []));
     }
+
+    // Detecta pedidos que acabaram de entrar em preparo (aceitos no PDV/Cozinha)
+    // ou novos pedidos pendentes, para abrir automaticamente em destaque.
+    if (!firstLoad.current) {
+      const alvo = ords.find((o) => {
+        const anterior = prevStatus.current.get(o.id);
+        if (o.status === "accepted" && anterior !== "accepted") return true;
+        if (o.status === "pending" && anterior === undefined) return true;
+        return false;
+      });
+      if (alvo) {
+        if (soundRef.current) { beep(); vibrate(); }
+        toast.info(
+          alvo.status === "accepted"
+            ? `👨‍🍳 Pedido #${alvo.order_number} em preparo`
+            : `🔔 Novo pedido #${alvo.order_number}`,
+        );
+        setSpotlight(alvo);
+      }
+    }
+    prevStatus.current = new Map(ords.map((o) => [o.id, o.status]));
+    firstLoad.current = false;
+
     setOrders(ords);
+    // Mantém o card em destaque sincronizado com os dados mais recentes.
+    setSpotlight((cur) => (cur ? ords.find((o) => o.id === cur.id) ?? null : null));
     setLoading(false);
   };
 
@@ -113,16 +172,14 @@ export default function Cozinha() {
     load();
     const ch = supabase
       .channel("cozinha_online_orders")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "online_orders" }, () => {
-        if (soundOn) beep();
-        toast.info("🔔 Novo pedido recebido!");
-        load();
-      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "online_orders" }, () => load())
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "online_orders" }, () => load())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "online_order_items" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [soundOn]);
+  }, []);
+
 
   const counts = useMemo(() => ({
     pending: orders.filter((o) => o.status === "pending").length,
@@ -148,13 +205,17 @@ export default function Cozinha() {
       .eq("id", o.id);
     if (error) return toast.error("Erro ao aceitar");
     toast.success(`Pedido #${o.order_number} em preparo`);
+    if (soundOn) { beep(); vibrate(); }
+    setSpotlight({ ...o, status: "accepted" });
   };
 
   const markCompleted = async (o: Order) => {
     const { error } = await supabase.from("online_orders").update({ status: "completed" }).eq("id", o.id);
     if (error) return toast.error("Erro ao concluir");
     toast.success(`Pedido #${o.order_number} concluído`);
+    setSpotlight(null);
   };
+
 
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [cancelReason, setCancelReason] = useState<string>(CANCEL_REASONS[0]);
@@ -319,7 +380,11 @@ export default function Cozinha() {
                         <XCircle className="h-4 w-4 mr-1" />Cancelar
                       </Button>
                     )}
+                    <Button variant="outline" size="icon" title="Ampliar pedido" onClick={() => setSpotlight(o)}>
+                      <Maximize2 className="h-4 w-4" />
+                    </Button>
                   </div>
+
                 </Card>
               );
             })}
@@ -374,6 +439,79 @@ export default function Cozinha() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Pedido em destaque — abre sozinho ao chegar/aceitar, com alerta visual */}
+      <Dialog open={!!spotlight} onOpenChange={(v) => !v && setSpotlight(null)}>
+        <DialogContent className="max-w-3xl sm:max-w-3xl w-[96vw] max-h-[92vh] overflow-y-auto border-4 border-primary animate-scale-in">
+          {spotlight && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-display text-4xl flex items-center gap-3 flex-wrap">
+                  <span className="animate-pulse">🔔</span>
+                  Pedido #{spotlight.order_number}
+                  <Badge className={cn("border text-base", statusMeta[spotlight.status].color)}>
+                    {statusMeta[spotlight.status].label}
+                  </Badge>
+                </DialogTitle>
+                <DialogDescription className="text-base">
+                  {spotlight.customer_name} · {spotlight.customer_phone} ·{" "}
+                  {spotlight.order_type === "delivery" ? "Entrega" : "Retirada"}
+                </DialogDescription>
+              </DialogHeader>
+
+              {spotlight.order_type === "delivery" && spotlight.address_street && (
+                <p className="text-lg bg-muted/40 rounded p-3">
+                  📍 {spotlight.address_street}, {spotlight.address_number}
+                  {spotlight.address_complement && ` · ${spotlight.address_complement}`}
+                  {spotlight.address_reference && ` · Ref.: ${spotlight.address_reference}`}
+                </p>
+              )}
+
+              <ul className="divide-y divide-border border-y border-border">
+                {(spotlight.items ?? []).map((i, idx) => (
+                  <li key={idx} className="flex justify-between items-center py-3">
+                    <span className="text-2xl">
+                      <strong className="text-primary">{i.quantity}x</strong> {i.product_name}
+                    </span>
+                    <span className="text-muted-foreground text-lg">R$ {i.subtotal.toFixed(2)}</span>
+                  </li>
+                ))}
+                {(spotlight.items ?? []).length === 0 && (
+                  <li className="py-3 text-muted-foreground">Este pedido não possui itens registrados.</li>
+                )}
+              </ul>
+
+              {spotlight.notes && (
+                <p className="text-lg bg-amber-500/10 border border-amber-500/30 rounded p-3">
+                  📝 {spotlight.notes}
+                </p>
+              )}
+
+              <div className="flex justify-between items-center text-2xl font-display">
+                <span>Total</span>
+                <span>R$ {spotlight.total.toFixed(2)}</span>
+              </div>
+
+              <DialogFooter className="gap-2">
+                <Button variant="outline" size="lg" onClick={() => setSpotlight(null)}>
+                  Fechar
+                </Button>
+                {spotlight.status === "pending" && (
+                  <Button size="lg" onClick={() => markAccepted(spotlight)}>
+                    <ChefHat className="h-5 w-5 mr-2" />Iniciar preparo
+                  </Button>
+                )}
+                {spotlight.status === "accepted" && (
+                  <Button size="lg" onClick={() => markCompleted(spotlight)}>
+                    <CheckCircle2 className="h-5 w-5 mr-2" />Marcar como pronto
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
+
 }
