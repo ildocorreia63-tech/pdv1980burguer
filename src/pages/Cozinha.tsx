@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Bell, Search, Clock, CheckCircle2, ChefHat, Receipt, Bike, ShoppingBag, XCircle, Ban } from "lucide-react";
+import { Bell, Search, Clock, CheckCircle2, ChefHat, Receipt, Bike, ShoppingBag, XCircle, Ban, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Status = "pending_payment" | "pending" | "accepted" | "completed" | "rejected";
