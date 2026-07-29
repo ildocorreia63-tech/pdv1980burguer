@@ -205,13 +205,17 @@ export default function Cozinha() {
       .eq("id", o.id);
     if (error) return toast.error("Erro ao aceitar");
     toast.success(`Pedido #${o.order_number} em preparo`);
+    if (soundOn) { beep(); vibrate(); }
+    setSpotlight({ ...o, status: "accepted" });
   };
 
   const markCompleted = async (o: Order) => {
     const { error } = await supabase.from("online_orders").update({ status: "completed" }).eq("id", o.id);
     if (error) return toast.error("Erro ao concluir");
     toast.success(`Pedido #${o.order_number} concluído`);
+    setSpotlight(null);
   };
+
 
   const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
   const [cancelReason, setCancelReason] = useState<string>(CANCEL_REASONS[0]);
