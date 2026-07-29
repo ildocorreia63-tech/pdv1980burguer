@@ -57,6 +57,43 @@ export default function Admin() {
   const [catOpen, setCatOpen] = useState(false);
   const [newCatName, setNewCatName] = useState("");
 
+  // Reinício do sistema (zerar movimento operacional)
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetConfirm, setResetConfirm] = useState("");
+  const [resetStock, setResetStock] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const runReset = async () => {
+    // Dupla proteção: exige a palavra exata antes de qualquer chamada ao banco.
+    if (resetConfirm.trim().toUpperCase() !== "ZERAR") {
+      toast.error('Digite ZERAR para confirmar');
+      return;
+    }
+    setResetLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("reset_operational_data" as any, { _reset_stock: resetStock });
+      if (error) throw error;
+      const r = (data ?? {}) as { sales?: number; expenses?: number; orders?: number };
+      toast.success(
+        `Sistema zerado: ${r.sales ?? 0} venda(s), ${r.expenses ?? 0} despesa(s) e ${r.orders ?? 0} pedido(s) apagados`,
+      );
+      // Limpa carrinhos/checkout salvos localmente para não reaparecerem.
+      try {
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith("pdv:") || k.startsWith("cardapio:"))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch { /* storage indisponível */ }
+      setResetOpen(false);
+      setResetConfirm("");
+      setResetStock(false);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Não foi possível zerar os dados");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+
   // Simulador de webhook Asaas
   const [simOpen, setSimOpen] = useState(false);
   const [simOrderId, setSimOrderId] = useState("");
