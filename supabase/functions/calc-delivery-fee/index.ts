@@ -171,6 +171,7 @@ Deno.serve(async (req) => {
       tier_label: `Até ${tier.max_km} km`,
       eta: tier.eta ?? null,
       no_delivery: false,
+      approx,
       formatted_address: dj?.results?.[0]?.formatted_address ?? null,
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
