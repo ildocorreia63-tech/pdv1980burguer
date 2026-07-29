@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(url, key);
     const { data: settings, error: sErr } = await supabase
       .from("store_settings")
-      .select("delivery_mode, store_address, store_lat, store_lng, delivery_km_tiers")
+      .select("id, delivery_mode, store_address, store_lat, store_lng, delivery_km_tiers")
       .maybeSingle();
     if (sErr) throw sErr;
     if (!settings) throw new Error("Configurações da loja não encontradas");
@@ -67,9 +67,9 @@ Deno.serve(async (req) => {
     if (!Array.isArray(tiers) || tiers.length === 0) throw new Error("Nenhuma faixa de KM configurada");
 
     // 1) Origem: usa lat/lng cacheados; senão geocoda o endereço da loja e persiste.
-    let originLat = settings.store_lat ? Number(settings.store_lat) : null;
-    let originLng = settings.store_lng ? Number(settings.store_lng) : null;
-    if (originLat == null || originLng == null) {
+    let originLat = settings.store_lat != null ? Number(settings.store_lat) : null;
+    let originLng = settings.store_lng != null ? Number(settings.store_lng) : null;
+    if (originLat == null || originLng == null || Number.isNaN(originLat) || Number.isNaN(originLng)) {
       if (!settings.store_address) throw new Error("Endereço da loja não configurado");
       const geo = await fetch(
         `${GATEWAY}/maps/api/geocode/json?address=${encodeURIComponent(settings.store_address)}&region=br`,
@@ -80,9 +80,11 @@ Deno.serve(async (req) => {
       if (!loc) throw new Error("Não foi possível localizar o endereço da loja");
       originLat = Number(loc.lat);
       originLng = Number(loc.lng);
-      await supabase.from("store_settings")
-        .update({ store_lat: originLat, store_lng: originLng })
-        .eq("id", (settings as any).id ?? undefined);
+      if (settings.id) {
+        await supabase.from("store_settings")
+          .update({ store_lat: originLat, store_lng: originLng })
+          .eq("id", settings.id);
+      }
     }
 
     // 2) Geocoda destino do cliente
@@ -92,40 +94,59 @@ Deno.serve(async (req) => {
     );
     if (!dest.ok) {
       const body = await dest.text();
+      console.error("geocode falhou", dest.status, body);
       return new Response(JSON.stringify({ error: "Falha ao geocodificar endereço", details: body }), {
         status: dest.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const dj = await dest.json();
     const dloc = dj?.results?.[0]?.geometry?.location;
-    if (!dloc) throw new Error("Endereço do cliente não encontrado");
-
-    // 3) Distância via Routes API (computeRoutes)
-    const routes = await fetch(`${GATEWAY}/routes/directions/v2:computeRoutes`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": GMAPS_KEY,
-        "Content-Type": "application/json",
-        "X-Goog-FieldMask": "routes.distanceMeters,routes.duration",
-      },
-      body: JSON.stringify({
-        origin: { location: { latLng: { latitude: originLat, longitude: originLng } } },
-        destination: { location: { latLng: { latitude: dloc.lat, longitude: dloc.lng } } },
-        travelMode: "DRIVE",
-        routingPreference: "TRAFFIC_UNAWARE",
-      }),
-    });
-    if (!routes.ok) {
-      const body = await routes.text();
-      return new Response(JSON.stringify({ error: "Falha ao calcular rota", details: body }), {
-        status: routes.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!dloc) {
+      return new Response(JSON.stringify({
+        error: "Endereço não encontrado. Informe rua, número, bairro e cidade.",
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const rj = await routes.json();
-    const meters = rj?.routes?.[0]?.distanceMeters;
-    if (!meters) throw new Error("Rota não encontrada");
-    const km = Number(meters) / 1000;
+    const destLat = Number(dloc.lat);
+    const destLng = Number(dloc.lng);
+
+    // 3) Distância via Routes API (computeRoutes); fallback em linha reta.
+    let km: number | null = null;
+    let approx = false;
+    try {
+      const routes = await fetch(`${GATEWAY}/routes/directions/v2:computeRoutes`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "X-Connection-Api-Key": GMAPS_KEY,
+          "Content-Type": "application/json",
+          "X-Goog-FieldMask": "routes.distanceMeters,routes.duration",
+        },
+        body: JSON.stringify({
+          origin: { location: { latLng: { latitude: originLat, longitude: originLng } } },
+          destination: { location: { latLng: { latitude: destLat, longitude: destLng } } },
+          travelMode: "DRIVE",
+          routingPreference: "TRAFFIC_UNAWARE",
+        }),
+      });
+      const rjText = await routes.text();
+      if (!routes.ok) {
+        console.error("computeRoutes falhou", routes.status, rjText);
+      } else {
+        const rj = JSON.parse(rjText || "{}");
+        const meters = rj?.routes?.[0]?.distanceMeters;
+        if (meters != null) km = Number(meters) / 1000;
+        else console.error("computeRoutes sem rota", rjText);
+      }
+    } catch (routeErr) {
+      console.error("computeRoutes erro", routeErr);
+    }
+
+    if (km == null) {
+      // Fallback: linha reta * 1.3 (fator médio de malha viária urbana).
+      km = haversineKm(originLat!, originLng!, destLat, destLng) * 1.3;
+      approx = true;
+    }
+
 
     const { tier, index } = pickTier(tiers, km);
     if (!tier) {
