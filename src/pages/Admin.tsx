@@ -433,6 +433,10 @@ export default function Admin() {
           <Button size="icon" variant="outline" onClick={() => setSimOpen(true)} title="Testar webhook Asaas">
             <Webhook className="h-4 w-4" />
           </Button>
+          <Button size="icon" variant="outline" className="text-destructive" onClick={() => setResetOpen(true)} title="Zerar sistema">
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+
           <Button size="icon" variant="outline" onClick={openNew} title="Novo produto">
             <Plus className="h-4 w-4" />
           </Button>
