@@ -105,6 +105,13 @@ export default function Cozinha() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [soundOn, setSoundOn] = useState(true);
+  // Pedido em destaque: abre em tela cheia assim que chega/é aceito.
+  const [spotlight, setSpotlight] = useState<Order | null>(null);
+  const soundRef = useRef(soundOn);
+  soundRef.current = soundOn;
+  // Guarda o status anterior de cada pedido para detectar transições.
+  const prevStatus = useRef<Map<string, Status>>(new Map());
+  const firstLoad = useRef(true);
 
   const load = async () => {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -132,7 +139,32 @@ export default function Cozinha() {
       });
       ords.forEach((o) => (o.items = by.get(o.id) ?? []));
     }
+
+    // Detecta pedidos que acabaram de entrar em preparo (aceitos no PDV/Cozinha)
+    // ou novos pedidos pendentes, para abrir automaticamente em destaque.
+    if (!firstLoad.current) {
+      const alvo = ords.find((o) => {
+        const anterior = prevStatus.current.get(o.id);
+        if (o.status === "accepted" && anterior !== "accepted") return true;
+        if (o.status === "pending" && anterior === undefined) return true;
+        return false;
+      });
+      if (alvo) {
+        if (soundRef.current) { beep(); vibrate(); }
+        toast.info(
+          alvo.status === "accepted"
+            ? `👨‍🍳 Pedido #${alvo.order_number} em preparo`
+            : `🔔 Novo pedido #${alvo.order_number}`,
+        );
+        setSpotlight(alvo);
+      }
+    }
+    prevStatus.current = new Map(ords.map((o) => [o.id, o.status]));
+    firstLoad.current = false;
+
     setOrders(ords);
+    // Mantém o card em destaque sincronizado com os dados mais recentes.
+    setSpotlight((cur) => (cur ? ords.find((o) => o.id === cur.id) ?? null : null));
     setLoading(false);
   };
 
@@ -140,16 +172,14 @@ export default function Cozinha() {
     load();
     const ch = supabase
       .channel("cozinha_online_orders")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "online_orders" }, () => {
-        if (soundOn) beep();
-        toast.info("🔔 Novo pedido recebido!");
-        load();
-      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "online_orders" }, () => load())
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "online_orders" }, () => load())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "online_order_items" }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [soundOn]);
+  }, []);
+
 
   const counts = useMemo(() => ({
     pending: orders.filter((o) => o.status === "pending").length,
