@@ -450,13 +450,20 @@ export default function PedidosOnline() {
             })()}
 
             <div className="mt-3 space-y-1">
-              {o.items?.map((it) => (
-                <div key={it.id} className="flex justify-between text-sm">
-                  <span>{it.quantity}x {it.product_name}</span>
-                  <span>{formatBRL(it.subtotal)}</span>
+              {(o.items?.length ?? 0) === 0 ? (
+                <div className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
+                  Pedido sem produtos registrados — não é possível faturar. Confirme os itens com o cliente pelo WhatsApp.
                 </div>
-              ))}
+              ) : (
+                o.items?.map((it) => (
+                  <div key={it.id} className="flex justify-between text-sm">
+                    <span>{it.quantity}x {it.product_name}</span>
+                    <span>{formatBRL(it.subtotal)}</span>
+                  </div>
+                ))
+              )}
             </div>
+
 
             {o.notes && <p className="mt-2 text-xs italic text-muted-foreground">Obs: {o.notes}</p>}
 
