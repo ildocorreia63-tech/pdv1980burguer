@@ -473,8 +473,12 @@ export default function Cardapio() {
         logEvent(trace_id, scope, stage, "Falha ao criar pedido (RPC)", "error", { code: (error as any).code, message: error.message, details: (error as any).details, hint: (error as any).hint });
         throw error;
       }
-      const order = rpcData as { id: string; order_number: number };
-      logEvent(trace_id, scope, stage, "Pedido criado", "info", { order_id: order.id, order_number: order.order_number });
+      const order = rpcData as { id: string; order_number: number; items_count?: number };
+      logEvent(trace_id, scope, stage, "Pedido criado", "info", { order_id: order.id, order_number: order.order_number, items_count: order.items_count, items_enviados: itemsPayload.length });
+      if (typeof order.items_count === "number" && order.items_count !== itemsPayload.length) {
+        logEvent(trace_id, scope, stage, "Divergência na quantidade de itens gravados", "warn", { esperado: itemsPayload.length, gravado: order.items_count });
+      }
+
 
       if (paymentMethod === "pix") {
         stage = "asaas_create_pix";
