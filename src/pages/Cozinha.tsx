@@ -380,7 +380,11 @@ export default function Cozinha() {
                         <XCircle className="h-4 w-4 mr-1" />Cancelar
                       </Button>
                     )}
+                    <Button variant="outline" size="icon" title="Ampliar pedido" onClick={() => setSpotlight(o)}>
+                      <Maximize2 className="h-4 w-4" />
+                    </Button>
                   </div>
+
                 </Card>
               );
             })}
