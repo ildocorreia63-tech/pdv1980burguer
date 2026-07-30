@@ -199,21 +199,46 @@ export default function Cozinha() {
     return true;
   });
 
+  // Atualiza o status no banco e devolve a linha alterada.
+  // Usamos .select() para diferenciar "erro" de "0 linhas alteradas" (RLS/permissão),
+  // que antes falhava silenciosamente e dava a impressão de que o botão não funcionava.
+  const updateStatus = async (o: Order, patch: Record<string, unknown>) => {
+    const { data, error } = await supabase
+      .from("online_orders")
+      .update(patch)
+      .eq("id", o.id)
+      .select("id, status")
+      .maybeSingle();
+    if (error) {
+      toast.error("Erro ao atualizar pedido: " + error.message);
+      return null;
+    }
+    if (!data) {
+      toast.error("Sem permissão para atualizar este pedido.");
+      return null;
+    }
+    // Atualiza a lista local na hora (não espera o realtime).
+    setOrders((cur) => cur.map((x) => (x.id === o.id ? { ...x, ...patch } as Order : x)));
+    prevStatus.current.set(o.id, (patch.status as Status) ?? o.status);
+    return data;
+  };
+
   const markAccepted = async (o: Order) => {
-    const { error } = await supabase.from("online_orders")
-      .update({ status: "accepted", accepted_at: new Date().toISOString() })
-      .eq("id", o.id);
-    if (error) return toast.error("Erro ao aceitar");
+    const ok = await updateStatus(o, { status: "accepted", accepted_at: new Date().toISOString() });
+    if (!ok) return;
     toast.success(`Pedido #${o.order_number} em preparo`);
     if (soundOn) { beep(); vibrate(); }
     setSpotlight({ ...o, status: "accepted" });
   };
 
   const markCompleted = async (o: Order) => {
-    const { error } = await supabase.from("online_orders").update({ status: "completed" }).eq("id", o.id);
-    if (error) return toast.error("Erro ao concluir");
+    const ok = await updateStatus(o, { status: "completed" });
+    if (!ok) return;
     toast.success(`Pedido #${o.order_number} concluído`);
     setSpotlight(null);
+    // Se o filtro atual é "Em preparo", leva o operador para a lista de faturados
+    // para que ele veja o pedido que acabou de sair.
+    if (filter === "accepted") setFilter("completed");
   };
 
 
