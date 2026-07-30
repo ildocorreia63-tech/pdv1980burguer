@@ -42,6 +42,8 @@ export const CheckoutSheet = ({ open, onOpenChange, cart, subtotal, onConfirmed 
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [newCustName, setNewCustName] = useState("");
   const [newCustPhone, setNewCustPhone] = useState("");
+  const [newCustEmail, setNewCustEmail] = useState("");
+  const [newCustBirth, setNewCustBirth] = useState("");
   const [saving, setSaving] = useState(false);
 
   const total = Math.max(0, subtotal - discount);
