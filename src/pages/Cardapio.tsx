@@ -669,11 +669,11 @@ export default function Cardapio() {
           <DialogHeader><DialogTitle>Meus dados</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              Salve seus dados para agilizar os próximos pedidos. Eles ficam guardados só neste aparelho.
+              Salve seus dados para agilizar os próximos pedidos. Ficam neste aparelho e também no cadastro da loja.
             </p>
             <div className="space-y-1">
               <Label className="text-xs">Nome</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" maxLength={120} />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
@@ -683,6 +683,25 @@ export default function Cardapio() {
               <div className="space-y-1">
                 <Label className="text-xs">CPF</Label>
                 <Input value={formatCPF(cpf)} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" inputMode="numeric" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">E-mail</Label>
+                <Input
+                  type="email"
+                  value={profile.email}
+                  onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
+                  placeholder="voce@email.com"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Aniversário</Label>
+                <Input
+                  type="date"
+                  value={profile.birthDate}
+                  onChange={(e) => setProfile((p) => ({ ...p, birthDate: e.target.value }))}
+                />
               </div>
             </div>
             <div className="grid grid-cols-[1fr_90px] gap-2">
@@ -706,19 +725,8 @@ export default function Cardapio() {
               </div>
             </div>
             <div className="grid gap-2">
-              <Button
-                className="w-full"
-                onClick={() => {
-                  setCustomerOpen(false);
-                  toast.success("Dados salvos");
-                  // Se já houver itens no carrinho, segue direto para o checkout preenchido
-                  if (totalQty > 0) {
-                    setCartOpen(false);
-                    setCheckoutOpen(true);
-                  }
-                }}
-              >
-                {totalQty > 0 ? "Salvar e ir para o checkout" : "Salvar meus dados"}
+              <Button className="w-full" onClick={saveProfile} disabled={savingProfile}>
+                {savingProfile ? "Salvando..." : totalQty > 0 ? "Salvar e ir para o checkout" : "Salvar meus dados"}
               </Button>
               {totalQty === 0 && (
                 <p className="text-xs text-muted-foreground text-center">
@@ -730,6 +738,7 @@ export default function Cardapio() {
           </div>
         </DialogContent>
       </Dialog>
+
 
 
       {/* Search + Categories */}
