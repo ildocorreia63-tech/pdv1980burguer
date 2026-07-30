@@ -194,6 +194,7 @@ export default function Admin() {
       setPixCity(sx.pix_city ?? "");
       setHours({ ...DEFAULT_HOURS, ...(sx.business_hours ?? {}) });
       setBannerUrl(sx.banner_url ?? null);
+      setLogoUrl(sx.logo_url ?? null);
       setBannerEnabled(sx.banner_enabled ?? true);
       setDeliveryMode((sx.delivery_mode as "zones" | "km") ?? "zones");
       setStoreAddress(sx.store_address ?? "");
