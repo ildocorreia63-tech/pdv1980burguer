@@ -577,6 +577,30 @@ export default function Cardapio() {
 
   return (
     <div className="min-h-screen pb-24 bg-background">
+      {/* Hero */}
+      <header className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
+
+        {settings?.banner_enabled && settings?.banner_url && (
+          <div className="mx-auto max-w-2xl px-4 pt-4">
+            <img
+              src={settings.banner_url}
+              alt={`Banner ${settings?.store_name ?? ""}`}
+              className="w-full h-40 sm:h-56 object-cover rounded-xl ring-2 ring-white/30 shadow-lg"
+              loading="eager"
+            />
+          </div>
+        )}
+        <div className="mx-auto max-w-2xl px-4 pt-6 pb-8 flex items-center gap-4">
+          <div className="h-20 w-20 rounded-2xl bg-black/30 ring-2 ring-white/30 overflow-hidden flex items-center justify-center p-1 shrink-0">
+            <img src={settings?.logo_url ?? logo} alt={settings?.store_name ?? "Loja"} className="h-full w-full object-contain" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="font-display text-3xl leading-none">{settings?.store_name ?? "Cardápio"}</h1>
+            <p className="text-sm opacity-90 mt-1">{settings?.welcome_message}</p>
+          </div>
+        </div>
+      </header>
+
       {/* Barra de informações da loja */}
       <div className="border-b border-border bg-card">
         <div className="mx-auto max-w-2xl px-4 py-2 flex items-start justify-between gap-3">
@@ -608,8 +632,8 @@ export default function Cardapio() {
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">
             {settings?.show_login_button !== false && (
-              <Button asChild size="sm" variant="secondary">
-                <Link to="/auth"><LogIn className="h-4 w-4 mr-1" /> Login</Link>
+              <Button size="sm" variant="secondary" onClick={() => setCustomerOpen(true)}>
+                <User className="h-4 w-4 mr-1" /> {name ? name.split(" ")[0] : "Entrar"}
               </Button>
             )}
             {settings?.show_rating !== false && (
@@ -639,29 +663,55 @@ export default function Cardapio() {
         </DialogContent>
       </Dialog>
 
-      {/* Hero */}
-      <header className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
+      {/* Meus dados (cliente) */}
+      <Dialog open={customerOpen} onOpenChange={setCustomerOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Meus dados</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Salve seus dados para agilizar os próximos pedidos. Eles ficam guardados só neste aparelho.
+            </p>
+            <div className="space-y-1">
+              <Label className="text-xs">Nome</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">WhatsApp</Label>
+                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" inputMode="tel" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">CPF</Label>
+                <Input value={formatCPF(cpf)} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" inputMode="numeric" />
+              </div>
+            </div>
+            <div className="grid grid-cols-[1fr_90px] gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Rua</Label>
+                <Input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Rua / Av." />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Número</Label>
+                <Input value={number} onChange={(e) => setNumber(e.target.value)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Complemento</Label>
+                <Input value={complement} onChange={(e) => setComplement(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Referência</Label>
+                <Input value={reference} onChange={(e) => setReference(e.target.value)} />
+              </div>
+            </div>
+            <Button className="w-full" onClick={() => { setCustomerOpen(false); toast.success("Dados salvos"); }}>
+              Salvar meus dados
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-        {settings?.banner_enabled && settings?.banner_url && (
-          <div className="mx-auto max-w-2xl px-4 pt-4">
-            <img
-              src={settings.banner_url}
-              alt={`Banner ${settings?.store_name ?? ""}`}
-              className="w-full h-40 sm:h-56 object-cover rounded-xl ring-2 ring-white/30 shadow-lg"
-              loading="eager"
-            />
-          </div>
-        )}
-        <div className="mx-auto max-w-2xl px-4 pt-6 pb-8 flex items-center gap-4">
-          <div className="h-20 w-20 rounded-2xl bg-black/30 ring-2 ring-white/30 overflow-hidden flex items-center justify-center p-1 shrink-0">
-            <img src={settings?.logo_url ?? logo} alt={settings?.store_name ?? "Loja"} className="h-full w-full object-contain" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="font-display text-3xl leading-none">{settings?.store_name ?? "Cardápio"}</h1>
-            <p className="text-sm opacity-90 mt-1">{settings?.welcome_message}</p>
-          </div>
-        </div>
-      </header>
 
       {/* Search + Categories */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border">
