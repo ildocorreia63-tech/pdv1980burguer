@@ -23,6 +23,7 @@ import { DebugLogDialog } from "@/components/DebugLogDialog";
 
 const CART_KEY = "cardapio:cart:v1";
 const CHECKOUT_KEY = "cardapio:checkout:v1";
+const PROFILE_KEY = "cardapio:profile:v1";
 
 const safeString = (value: unknown): string => typeof value === "string" ? value : "";
 const onlyDigits = (value: unknown): string => safeString(value).replace(/\D/g, "");
