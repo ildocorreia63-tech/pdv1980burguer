@@ -9,13 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check, Bug, CreditCard, ExternalLink, Share2 } from "lucide-react";
+import { Info, Star, LogIn, Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check, Bug, CreditCard, ExternalLink, Share2 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { buildPixPayload } from "@/lib/pix";
-import { BusinessHours, isOpenNow, nextOpeningLabel } from "@/lib/businessHours";
+import { BusinessHours, isOpenNow, nextOpeningLabel, WEEKDAYS } from "@/lib/businessHours";
+import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentState";
 import { logEvent, newTraceId } from "@/lib/debugLog";
 import { DebugLogDialog } from "@/components/DebugLogDialog";
@@ -158,7 +160,7 @@ export default function Cardapio() {
       const [c, z, s] = await Promise.all([
         supabase.from("categories").select("id,name").order("sort_order"),
         supabase.from("delivery_zones").select("id,name,fee").eq("active", true).order("sort_order"),
-        supabase.from("public_store_settings" as any).select("store_name,whatsapp_number,welcome_message,menu_open,business_hours,banner_url,banner_enabled,logo_url,delivery_mode,store_address,delivery_km_tiers").maybeSingle(),
+        supabase.from("public_store_settings" as any).select("store_name,whatsapp_number,welcome_message,menu_open,business_hours,banner_url,banner_enabled,logo_url,delivery_mode,store_address,delivery_km_tiers,min_order_value,show_min_order,rating,show_rating,show_whatsapp_link,show_login_button").maybeSingle(),
       ]);
       setCats(c.data ?? []);
       setZones((z.data ?? []).map((x) => ({ ...x, fee: Number(x.fee) })));
