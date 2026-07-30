@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { BusinessHours, DEFAULT_HOURS, WEEKDAYS } from "@/lib/businessHours";
 import { cn } from "@/lib/utils";
+import { validateImageFile, resizeImage } from "@/lib/imageUtils";
 
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
