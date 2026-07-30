@@ -722,6 +722,7 @@ export type Database = {
           delivery_km_tiers: Json
           delivery_mode: string
           id: string
+          logo_url: string | null
           menu_open: boolean
           pix_city: string | null
           pix_key: string | null
@@ -742,6 +743,7 @@ export type Database = {
           delivery_km_tiers?: Json
           delivery_mode?: string
           id?: string
+          logo_url?: string | null
           menu_open?: boolean
           pix_city?: string | null
           pix_key?: string | null
@@ -762,6 +764,7 @@ export type Database = {
           delivery_km_tiers?: Json
           delivery_mode?: string
           id?: string
+          logo_url?: string | null
           menu_open?: boolean
           pix_city?: string | null
           pix_key?: string | null
