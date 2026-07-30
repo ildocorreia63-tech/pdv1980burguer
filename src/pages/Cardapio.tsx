@@ -9,14 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Info, Star, LogIn, Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check, Bug, CreditCard, ExternalLink, Share2 } from "lucide-react";
+import { Info, Star, User, Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check, Bug, CreditCard, ExternalLink, Share2 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { buildPixPayload } from "@/lib/pix";
 import { BusinessHours, isOpenNow, nextOpeningLabel, WEEKDAYS } from "@/lib/businessHours";
-import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentState";
 import { logEvent, newTraceId } from "@/lib/debugLog";
@@ -70,6 +69,7 @@ export default function Cardapio() {
   const [cart, setCart] = usePersistentState<CartItem[]>(CART_KEY, []);
   const [cartOpen, setCartOpen] = useState(false);
   const [hoursOpen, setHoursOpen] = useState(false);
+  const [customerOpen, setCustomerOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   // checkout fields (persisted as a single object)
