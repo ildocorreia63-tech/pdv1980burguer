@@ -75,9 +75,19 @@ export const CheckoutSheet = ({ open, onOpenChange, cart, subtotal, onConfirmed 
 
   const createCustomer = async () => {
     if (!newCustName.trim()) return toast.error("Informe o nome");
+    const email = newCustEmail.trim();
+    // validação simples de e-mail (opcional, mas se preenchido precisa ser válido)
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return toast.error("E-mail inválido");
+    }
     const { data, error } = await supabase
       .from("customers")
-      .insert({ name: newCustName.trim(), phone: newCustPhone || null })
+      .insert({
+        name: newCustName.trim(),
+        phone: newCustPhone || null,
+        email: email || null,
+        birth_date: newCustBirth || null,
+      })
       .select()
       .single();
     if (error) return toast.error(error.message);
@@ -87,8 +97,11 @@ export const CheckoutSheet = ({ open, onOpenChange, cart, subtotal, onConfirmed 
     setShowNewCustomer(false);
     setNewCustName("");
     setNewCustPhone("");
+    setNewCustEmail("");
+    setNewCustBirth("");
     toast.success("Cliente cadastrado");
   };
+
 
   const confirm = async () => {
     if (!user) return;
