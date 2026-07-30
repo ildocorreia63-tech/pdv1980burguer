@@ -724,9 +724,15 @@ export type Database = {
           id: string
           logo_url: string | null
           menu_open: boolean
+          min_order_value: number
           pix_city: string | null
           pix_key: string | null
           pix_receiver_name: string | null
+          rating: number
+          show_login_button: boolean
+          show_min_order: boolean
+          show_rating: boolean
+          show_whatsapp_link: boolean
           store_address: string | null
           store_lat: number | null
           store_lng: number | null
@@ -745,9 +751,15 @@ export type Database = {
           id?: string
           logo_url?: string | null
           menu_open?: boolean
+          min_order_value?: number
           pix_city?: string | null
           pix_key?: string | null
           pix_receiver_name?: string | null
+          rating?: number
+          show_login_button?: boolean
+          show_min_order?: boolean
+          show_rating?: boolean
+          show_whatsapp_link?: boolean
           store_address?: string | null
           store_lat?: number | null
           store_lng?: number | null
@@ -766,9 +778,15 @@ export type Database = {
           id?: string
           logo_url?: string | null
           menu_open?: boolean
+          min_order_value?: number
           pix_city?: string | null
           pix_key?: string | null
           pix_receiver_name?: string | null
+          rating?: number
+          show_login_button?: boolean
+          show_min_order?: boolean
+          show_rating?: boolean
+          show_whatsapp_link?: boolean
           store_address?: string | null
           store_lat?: number | null
           store_lng?: number | null
@@ -812,6 +830,12 @@ export type Database = {
           id: string | null
           logo_url: string | null
           menu_open: boolean | null
+          min_order_value: number | null
+          rating: number | null
+          show_login_button: boolean | null
+          show_min_order: boolean | null
+          show_rating: boolean | null
+          show_whatsapp_link: boolean | null
           store_address: string | null
           store_lat: number | null
           store_lng: number | null
@@ -828,6 +852,12 @@ export type Database = {
           id?: string | null
           logo_url?: string | null
           menu_open?: boolean | null
+          min_order_value?: number | null
+          rating?: number | null
+          show_login_button?: boolean | null
+          show_min_order?: boolean | null
+          show_rating?: boolean | null
+          show_whatsapp_link?: boolean | null
           store_address?: string | null
           store_lat?: number | null
           store_lng?: number | null
@@ -844,6 +874,12 @@ export type Database = {
           id?: string | null
           logo_url?: string | null
           menu_open?: boolean | null
+          min_order_value?: number | null
+          rating?: number | null
+          show_login_button?: boolean | null
+          show_min_order?: boolean | null
+          show_rating?: boolean | null
+          show_whatsapp_link?: boolean | null
           store_address?: string | null
           store_lat?: number | null
           store_lng?: number | null
