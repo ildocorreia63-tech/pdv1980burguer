@@ -153,6 +153,10 @@ export default function Admin() {
   const [bannerEnabled, setBannerEnabled] = useState(true);
   const [bannerUploading, setBannerUploading] = useState(false);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  // Logo da loja (substitui a imagem padrão no topo do app)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [settingsId, setSettingsId] = useState<string | null>(null);
 
   // Delivery mode (zones | km)
