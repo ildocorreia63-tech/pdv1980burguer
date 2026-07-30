@@ -53,6 +53,9 @@ type Settings = {
   banner_url: string | null; banner_enabled: boolean; logo_url?: string | null;
   delivery_mode?: "zones" | "km"; store_address?: string | null;
   delivery_km_tiers?: Array<{ max_km: number; price: number; free_from?: number; eta?: string; no_delivery?: boolean }>;
+  min_order_value?: number | null; show_min_order?: boolean | null;
+  rating?: number | null; show_rating?: boolean | null;
+  show_whatsapp_link?: boolean | null; show_login_button?: boolean | null;
 };
 
 export default function Cardapio() {
