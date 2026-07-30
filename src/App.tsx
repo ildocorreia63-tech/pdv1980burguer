@@ -26,6 +26,7 @@ const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const Acompanhar = lazy(() => import("./pages/Acompanhar"));
 const Cozinha = lazy(() => import("./pages/Cozinha"));
 const Aniversariantes = lazy(() => import("./pages/Aniversariantes"));
+const Clientes = lazy(() => import("./pages/Clientes"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
