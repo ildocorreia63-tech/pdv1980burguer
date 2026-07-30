@@ -368,6 +368,7 @@ export default function Admin() {
       pix_city: pixCity.trim() || null,
       business_hours: hours,
       banner_url: bannerUrl,
+      logo_url: logoUrl,
       banner_enabled: bannerEnabled,
       delivery_mode: deliveryMode,
       store_address: storeAddress.trim() || null,
