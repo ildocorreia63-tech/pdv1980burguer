@@ -126,8 +126,15 @@ export type Database = {
       }
       customers: {
         Row: {
+          address_complement: string | null
+          address_number: string | null
+          address_reference: string | null
+          address_street: string | null
+          birth_date: string | null
+          cpf: string | null
           created_at: string
           credit_balance: number
+          email: string | null
           id: string
           name: string
           notes: string | null
@@ -135,8 +142,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          address_complement?: string | null
+          address_number?: string | null
+          address_reference?: string | null
+          address_street?: string | null
+          birth_date?: string | null
+          cpf?: string | null
           created_at?: string
           credit_balance?: number
+          email?: string | null
           id?: string
           name: string
           notes?: string | null
@@ -144,8 +158,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          address_complement?: string | null
+          address_number?: string | null
+          address_reference?: string | null
+          address_street?: string | null
+          birth_date?: string | null
+          cpf?: string | null
           created_at?: string
           credit_balance?: number
+          email?: string | null
           id?: string
           name?: string
           notes?: string | null
@@ -909,6 +930,7 @@ export type Database = {
         Args: { _reset_stock?: boolean }
         Returns: Json
       }
+      upsert_customer_profile: { Args: { _data: Json }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "operator"

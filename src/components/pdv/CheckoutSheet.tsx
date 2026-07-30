@@ -42,6 +42,8 @@ export const CheckoutSheet = ({ open, onOpenChange, cart, subtotal, onConfirmed 
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [newCustName, setNewCustName] = useState("");
   const [newCustPhone, setNewCustPhone] = useState("");
+  const [newCustEmail, setNewCustEmail] = useState("");
+  const [newCustBirth, setNewCustBirth] = useState("");
   const [saving, setSaving] = useState(false);
 
   const total = Math.max(0, subtotal - discount);
@@ -73,9 +75,19 @@ export const CheckoutSheet = ({ open, onOpenChange, cart, subtotal, onConfirmed 
 
   const createCustomer = async () => {
     if (!newCustName.trim()) return toast.error("Informe o nome");
+    const email = newCustEmail.trim();
+    // validação simples de e-mail (opcional, mas se preenchido precisa ser válido)
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return toast.error("E-mail inválido");
+    }
     const { data, error } = await supabase
       .from("customers")
-      .insert({ name: newCustName.trim(), phone: newCustPhone || null })
+      .insert({
+        name: newCustName.trim(),
+        phone: newCustPhone || null,
+        email: email || null,
+        birth_date: newCustBirth || null,
+      })
       .select()
       .single();
     if (error) return toast.error(error.message);
@@ -85,8 +97,11 @@ export const CheckoutSheet = ({ open, onOpenChange, cart, subtotal, onConfirmed 
     setShowNewCustomer(false);
     setNewCustName("");
     setNewCustPhone("");
+    setNewCustEmail("");
+    setNewCustBirth("");
     toast.success("Cliente cadastrado");
   };
+
 
   const confirm = async () => {
     if (!user) return;
@@ -274,9 +289,20 @@ export const CheckoutSheet = ({ open, onOpenChange, cart, subtotal, onConfirmed 
               <div className="mt-2 space-y-2">
                 <Input placeholder="Nome do cliente" value={newCustName} onChange={(e) => setNewCustName(e.target.value)} />
                 <Input placeholder="Telefone (opcional)" value={newCustPhone} onChange={(e) => setNewCustPhone(e.target.value)} />
+                <Input
+                  type="email"
+                  placeholder="E-mail (opcional)"
+                  value={newCustEmail}
+                  onChange={(e) => setNewCustEmail(e.target.value)}
+                />
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Data de aniversário (opcional)</Label>
+                  <Input type="date" value={newCustBirth} onChange={(e) => setNewCustBirth(e.target.value)} />
+                </div>
                 <Button size="sm" className="w-full" onClick={createCustomer}>Cadastrar cliente</Button>
               </div>
             )}
+
           </div>
         )}
 

@@ -23,6 +23,7 @@ import { DebugLogDialog } from "@/components/DebugLogDialog";
 
 const CART_KEY = "cardapio:cart:v1";
 const CHECKOUT_KEY = "cardapio:checkout:v1";
+const PROFILE_KEY = "cardapio:profile:v1";
 
 const safeString = (value: unknown): string => typeof value === "string" ? value : "";
 const onlyDigits = (value: unknown): string => safeString(value).replace(/\D/g, "");
@@ -114,6 +115,56 @@ export default function Cardapio() {
   const setNotes = (v: string) => setCheckout((c) => ({ ...c, notes: v }));
   const setPaymentMethod = (v: CheckoutData["paymentMethod"]) => setCheckout((c) => ({ ...c, paymentMethod: v }));
   const setChangeFor = (v: string) => setCheckout((c) => ({ ...c, changeFor: v }));
+
+  // Perfil do cliente (e-mail e aniversário) — persistido localmente e no banco
+  type Profile = { email: string; birthDate: string };
+  const [profileRaw, setProfile] = usePersistentState<Profile>(PROFILE_KEY, { email: "", birthDate: "" });
+  const profile: Profile = {
+    email: safeString(profileRaw?.email),
+    birthDate: safeString(profileRaw?.birthDate),
+  };
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const saveProfile = async () => {
+    // validação defensiva antes de enviar ao banco
+    if (name.trim().length < 2) return toast.error("Informe seu nome");
+    const phoneDigits = onlyDigits(phone);
+    if (phoneDigits.length < 10 || phoneDigits.length > 13) return toast.error("WhatsApp inválido");
+    if (profile.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(profile.email.trim())) {
+      return toast.error("E-mail inválido");
+    }
+    const cpfDigits = onlyDigits(cpf);
+    if (cpfDigits && !isValidCPF(cpfDigits)) return toast.error("CPF inválido");
+
+    setSavingProfile(true);
+    try {
+      const { error } = await supabase.rpc("upsert_customer_profile", {
+        _data: {
+          name: name.trim(),
+          phone: phoneDigits,
+          email: profile.email.trim() || null,
+          cpf: cpfDigits || null,
+          birth_date: profile.birthDate || null,
+          address_street: street,
+          address_number: number,
+          address_complement: complement,
+          address_reference: reference,
+        },
+      });
+      if (error) throw error;
+      toast.success("Dados salvos");
+      setCustomerOpen(false);
+      if (totalQty > 0) {
+        setCartOpen(false);
+        setCheckoutOpen(true);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Falha ao salvar seus dados";
+      toast.error(msg);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -669,11 +720,11 @@ export default function Cardapio() {
           <DialogHeader><DialogTitle>Meus dados</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              Salve seus dados para agilizar os próximos pedidos. Eles ficam guardados só neste aparelho.
+              Salve seus dados para agilizar os próximos pedidos. Ficam neste aparelho e também no cadastro da loja.
             </p>
             <div className="space-y-1">
               <Label className="text-xs">Nome</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" maxLength={120} />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
@@ -683,6 +734,25 @@ export default function Cardapio() {
               <div className="space-y-1">
                 <Label className="text-xs">CPF</Label>
                 <Input value={formatCPF(cpf)} onChange={(e) => setCpf(e.target.value)} placeholder="000.000.000-00" inputMode="numeric" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">E-mail</Label>
+                <Input
+                  type="email"
+                  value={profile.email}
+                  onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
+                  placeholder="voce@email.com"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Aniversário</Label>
+                <Input
+                  type="date"
+                  value={profile.birthDate}
+                  onChange={(e) => setProfile((p) => ({ ...p, birthDate: e.target.value }))}
+                />
               </div>
             </div>
             <div className="grid grid-cols-[1fr_90px] gap-2">
@@ -706,19 +776,8 @@ export default function Cardapio() {
               </div>
             </div>
             <div className="grid gap-2">
-              <Button
-                className="w-full"
-                onClick={() => {
-                  setCustomerOpen(false);
-                  toast.success("Dados salvos");
-                  // Se já houver itens no carrinho, segue direto para o checkout preenchido
-                  if (totalQty > 0) {
-                    setCartOpen(false);
-                    setCheckoutOpen(true);
-                  }
-                }}
-              >
-                {totalQty > 0 ? "Salvar e ir para o checkout" : "Salvar meus dados"}
+              <Button className="w-full" onClick={saveProfile} disabled={savingProfile}>
+                {savingProfile ? "Salvando..." : totalQty > 0 ? "Salvar e ir para o checkout" : "Salvar meus dados"}
               </Button>
               {totalQty === 0 && (
                 <p className="text-xs text-muted-foreground text-center">
@@ -730,6 +789,7 @@ export default function Cardapio() {
           </div>
         </DialogContent>
       </Dialog>
+
 
 
       {/* Search + Categories */}
