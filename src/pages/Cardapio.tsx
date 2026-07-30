@@ -69,6 +69,7 @@ export default function Cardapio() {
   const [search, setSearch] = useState("");
   const [cart, setCart] = usePersistentState<CartItem[]>(CART_KEY, []);
   const [cartOpen, setCartOpen] = useState(false);
+  const [hoursOpen, setHoursOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   // checkout fields (persisted as a single object)
