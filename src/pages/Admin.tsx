@@ -414,14 +414,17 @@ export default function Admin() {
 
   // Envio do logo — aceita qualquer imagem da galeria/câmera do dispositivo.
   const handleLogoUpload = async (file: File) => {
-    if (!file) return;
-    if (file.size > 3 * 1024 * 1024) return toast.error("Imagem muito grande (máx 3MB)");
-    if (!file.type.startsWith("image/")) return toast.error("Arquivo deve ser uma imagem");
+    const check = validateImageFile(file, 5);
+    if (!check.ok) return toast.error(check.error ?? "Imagem inválida");
     setLogoUploading(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      // Redimensiona para no máximo 512x512 (webp) antes de salvar no storage.
+      const optimized = await resizeImage(file, { maxWidth: 512, maxHeight: 512, quality: 0.92 });
+      const ext = optimized.type === "image/gif" ? "gif" : optimized.type.split("/")[1] || "webp";
       const path = `logos/${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("product-images").upload(path, file, { cacheControl: "3600", upsert: false });
+      const { error: upErr } = await supabase.storage
+        .from("product-images")
+        .upload(path, optimized, { cacheControl: "3600", upsert: false, contentType: optimized.type });
       if (upErr) throw upErr;
       const { data } = supabase.storage.from("product-images").getPublicUrl(path);
       setLogoUrl(data.publicUrl);
@@ -430,6 +433,7 @@ export default function Admin() {
         if (error) throw error;
       }
       toast.success("Logo atualizado");
+
     } catch (err: any) {
       toast.error(err?.message ?? "Erro ao enviar logo");
     } finally {
