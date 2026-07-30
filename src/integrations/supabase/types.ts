@@ -810,6 +810,7 @@ export type Database = {
           delivery_km_tiers: Json | null
           delivery_mode: string | null
           id: string | null
+          logo_url: string | null
           menu_open: boolean | null
           store_address: string | null
           store_lat: number | null
@@ -825,6 +826,7 @@ export type Database = {
           delivery_km_tiers?: Json | null
           delivery_mode?: string | null
           id?: string | null
+          logo_url?: string | null
           menu_open?: boolean | null
           store_address?: string | null
           store_lat?: number | null
@@ -840,6 +842,7 @@ export type Database = {
           delivery_km_tiers?: Json | null
           delivery_mode?: string | null
           id?: string | null
+          logo_url?: string | null
           menu_open?: boolean | null
           store_address?: string | null
           store_lat?: number | null

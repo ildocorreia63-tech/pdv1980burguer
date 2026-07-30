@@ -50,7 +50,7 @@ type CartItem = { product: Product; qty: number; unavailable?: boolean };
 type Settings = {
   store_name: string; whatsapp_number: string | null; welcome_message: string | null;
   menu_open: boolean; business_hours: BusinessHours | null;
-  banner_url: string | null; banner_enabled: boolean;
+  banner_url: string | null; banner_enabled: boolean; logo_url?: string | null;
   delivery_mode?: "zones" | "km"; store_address?: string | null;
   delivery_km_tiers?: Array<{ max_km: number; price: number; free_from?: number; eta?: string; no_delivery?: boolean }>;
 };
@@ -155,7 +155,7 @@ export default function Cardapio() {
       const [c, z, s] = await Promise.all([
         supabase.from("categories").select("id,name").order("sort_order"),
         supabase.from("delivery_zones").select("id,name,fee").eq("active", true).order("sort_order"),
-        supabase.from("public_store_settings" as any).select("store_name,whatsapp_number,welcome_message,menu_open,business_hours,banner_url,banner_enabled,delivery_mode,store_address,delivery_km_tiers").maybeSingle(),
+        supabase.from("public_store_settings" as any).select("store_name,whatsapp_number,welcome_message,menu_open,business_hours,banner_url,banner_enabled,logo_url,delivery_mode,store_address,delivery_km_tiers").maybeSingle(),
       ]);
       setCats(c.data ?? []);
       setZones((z.data ?? []).map((x) => ({ ...x, fee: Number(x.fee) })));
@@ -558,7 +558,7 @@ export default function Cardapio() {
   if (isClosed) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-        <img src={logo} alt={settings?.store_name} className="h-24 w-24 rounded-2xl mb-4" />
+        <img src={settings?.logo_url ?? logo} alt={settings?.store_name ?? "Loja"} className="h-24 w-24 rounded-2xl mb-4" />
         <h1 className="font-display text-3xl">{settings?.store_name}</h1>
         <p className="mt-3 text-muted-foreground">{closedReason}</p>
       </div>
@@ -581,7 +581,7 @@ export default function Cardapio() {
         )}
         <div className="mx-auto max-w-2xl px-4 pt-6 pb-8 flex items-center gap-4">
           <div className="h-20 w-20 rounded-2xl bg-black/30 ring-2 ring-white/30 overflow-hidden flex items-center justify-center p-1 shrink-0">
-            <img src={logo} alt={settings?.store_name ?? "Loja"} className="h-full w-full object-contain" />
+            <img src={settings?.logo_url ?? logo} alt={settings?.store_name ?? "Loja"} className="h-full w-full object-contain" />
           </div>
           <div className="min-w-0">
             <h1 className="font-display text-3xl leading-none">{settings?.store_name ?? "Cardápio"}</h1>
