@@ -485,6 +485,10 @@ export default function Admin() {
           <Button asChild size="icon" variant="outline" title="Lista de Compras">
             <Link to="/lista-compras"><ClipboardList className="h-4 w-4" /></Link>
           </Button>
+          <Button asChild size="icon" variant="outline" title="Aniversariantes do mês">
+            <Link to="/aniversariantes"><Cake className="h-4 w-4" /></Link>
+          </Button>
+
           <Button size="icon" variant="outline" onClick={() => setSettingsOpen(true)} title="Configurações da loja">
             <SettingsIcon className="h-4 w-4" />
           </Button>
