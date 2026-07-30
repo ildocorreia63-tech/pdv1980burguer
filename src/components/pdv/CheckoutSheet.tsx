@@ -274,9 +274,20 @@ export const CheckoutSheet = ({ open, onOpenChange, cart, subtotal, onConfirmed 
               <div className="mt-2 space-y-2">
                 <Input placeholder="Nome do cliente" value={newCustName} onChange={(e) => setNewCustName(e.target.value)} />
                 <Input placeholder="Telefone (opcional)" value={newCustPhone} onChange={(e) => setNewCustPhone(e.target.value)} />
+                <Input
+                  type="email"
+                  placeholder="E-mail (opcional)"
+                  value={newCustEmail}
+                  onChange={(e) => setNewCustEmail(e.target.value)}
+                />
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Data de aniversário (opcional)</Label>
+                  <Input type="date" value={newCustBirth} onChange={(e) => setNewCustBirth(e.target.value)} />
+                </div>
                 <Button size="sm" className="w-full" onClick={createCustomer}>Cadastrar cliente</Button>
               </div>
             )}
+
           </div>
         )}
 
