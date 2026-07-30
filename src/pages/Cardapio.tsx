@@ -705,9 +705,28 @@ export default function Cardapio() {
                 <Input value={reference} onChange={(e) => setReference(e.target.value)} />
               </div>
             </div>
-            <Button className="w-full" onClick={() => { setCustomerOpen(false); toast.success("Dados salvos"); }}>
-              Salvar meus dados
-            </Button>
+            <div className="grid gap-2">
+              <Button
+                className="w-full"
+                onClick={() => {
+                  setCustomerOpen(false);
+                  toast.success("Dados salvos");
+                  // Se já houver itens no carrinho, segue direto para o checkout preenchido
+                  if (totalQty > 0) {
+                    setCartOpen(false);
+                    setCheckoutOpen(true);
+                  }
+                }}
+              >
+                {totalQty > 0 ? "Salvar e ir para o checkout" : "Salvar meus dados"}
+              </Button>
+              {totalQty === 0 && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Adicione itens ao carrinho e o checkout abrirá já preenchido com estes dados.
+                </p>
+              )}
+            </div>
+
           </div>
         </DialogContent>
       </Dialog>
