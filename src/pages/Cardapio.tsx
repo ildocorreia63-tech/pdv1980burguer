@@ -50,7 +50,7 @@ type CartItem = { product: Product; qty: number; unavailable?: boolean };
 type Settings = {
   store_name: string; whatsapp_number: string | null; welcome_message: string | null;
   menu_open: boolean; business_hours: BusinessHours | null;
-  banner_url: string | null; banner_enabled: boolean;
+  banner_url: string | null; banner_enabled: boolean; logo_url?: string | null;
   delivery_mode?: "zones" | "km"; store_address?: string | null;
   delivery_km_tiers?: Array<{ max_km: number; price: number; free_from?: number; eta?: string; no_delivery?: boolean }>;
 };
