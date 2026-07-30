@@ -485,6 +485,9 @@ export default function Admin() {
           <Button asChild size="icon" variant="outline" title="Lista de Compras">
             <Link to="/lista-compras"><ClipboardList className="h-4 w-4" /></Link>
           </Button>
+          <Button asChild size="icon" variant="outline" title="Clientes">
+            <Link to="/clientes"><Users className="h-4 w-4" /></Link>
+          </Button>
           <Button asChild size="icon" variant="outline" title="Aniversariantes do mês">
             <Link to="/aniversariantes"><Cake className="h-4 w-4" /></Link>
           </Button>
