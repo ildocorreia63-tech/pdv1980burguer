@@ -558,7 +558,7 @@ export default function Cardapio() {
   if (isClosed) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-        <img src={logo} alt={settings?.store_name} className="h-24 w-24 rounded-2xl mb-4" />
+        <img src={settings?.logo_url ?? logo} alt={settings?.store_name ?? "Loja"} className="h-24 w-24 rounded-2xl mb-4" />
         <h1 className="font-display text-3xl">{settings?.store_name}</h1>
         <p className="mt-3 text-muted-foreground">{closedReason}</p>
       </div>
@@ -581,7 +581,7 @@ export default function Cardapio() {
         )}
         <div className="mx-auto max-w-2xl px-4 pt-6 pb-8 flex items-center gap-4">
           <div className="h-20 w-20 rounded-2xl bg-black/30 ring-2 ring-white/30 overflow-hidden flex items-center justify-center p-1 shrink-0">
-            <img src={logo} alt={settings?.store_name ?? "Loja"} className="h-full w-full object-contain" />
+            <img src={settings?.logo_url ?? logo} alt={settings?.store_name ?? "Loja"} className="h-full w-full object-contain" />
           </div>
           <div className="min-w-0">
             <h1 className="font-display text-3xl leading-none">{settings?.store_name ?? "Cardápio"}</h1>
