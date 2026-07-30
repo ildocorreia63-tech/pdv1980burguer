@@ -9,13 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check, Bug, CreditCard, ExternalLink, Share2 } from "lucide-react";
+import { Info, Star, LogIn, Plus, Minus, Trash2, ShoppingCart, Search, MapPin, Store, MessageCircle, QrCode, Copy, Download, Check, Bug, CreditCard, ExternalLink, Share2 } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { buildPixPayload } from "@/lib/pix";
-import { BusinessHours, isOpenNow, nextOpeningLabel } from "@/lib/businessHours";
+import { BusinessHours, isOpenNow, nextOpeningLabel, WEEKDAYS } from "@/lib/businessHours";
+import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 import { usePersistentState, clearPersistentState } from "@/hooks/usePersistentState";
 import { logEvent, newTraceId } from "@/lib/debugLog";
 import { DebugLogDialog } from "@/components/DebugLogDialog";
@@ -53,6 +55,9 @@ type Settings = {
   banner_url: string | null; banner_enabled: boolean; logo_url?: string | null;
   delivery_mode?: "zones" | "km"; store_address?: string | null;
   delivery_km_tiers?: Array<{ max_km: number; price: number; free_from?: number; eta?: string; no_delivery?: boolean }>;
+  min_order_value?: number | null; show_min_order?: boolean | null;
+  rating?: number | null; show_rating?: boolean | null;
+  show_whatsapp_link?: boolean | null; show_login_button?: boolean | null;
 };
 
 export default function Cardapio() {
@@ -64,6 +69,7 @@ export default function Cardapio() {
   const [search, setSearch] = useState("");
   const [cart, setCart] = usePersistentState<CartItem[]>(CART_KEY, []);
   const [cartOpen, setCartOpen] = useState(false);
+  const [hoursOpen, setHoursOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   // checkout fields (persisted as a single object)
@@ -155,7 +161,7 @@ export default function Cardapio() {
       const [c, z, s] = await Promise.all([
         supabase.from("categories").select("id,name").order("sort_order"),
         supabase.from("delivery_zones").select("id,name,fee").eq("active", true).order("sort_order"),
-        supabase.from("public_store_settings" as any).select("store_name,whatsapp_number,welcome_message,menu_open,business_hours,banner_url,banner_enabled,logo_url,delivery_mode,store_address,delivery_km_tiers").maybeSingle(),
+        supabase.from("public_store_settings" as any).select("store_name,whatsapp_number,welcome_message,menu_open,business_hours,banner_url,banner_enabled,logo_url,delivery_mode,store_address,delivery_km_tiers,min_order_value,show_min_order,rating,show_rating,show_whatsapp_link,show_login_button").maybeSingle(),
       ]);
       setCats(c.data ?? []);
       setZones((z.data ?? []).map((x) => ({ ...x, fee: Number(x.fee) })));
@@ -565,10 +571,77 @@ export default function Cardapio() {
     );
   }
 
+  const todayHours = settings?.business_hours?.[String(new Date().getDay())] ?? null;
+  const wppDigits = onlyDigits(settings?.whatsapp_number);
+  const minOrder = Number(settings?.min_order_value ?? 0);
+
   return (
     <div className="min-h-screen pb-24 bg-background">
+      {/* Barra de informações da loja */}
+      <div className="border-b border-border bg-card">
+        <div className="mx-auto max-w-2xl px-4 py-2 flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1 text-sm">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge className="bg-success text-success-foreground hover:bg-success">Aberto!</Badge>
+              {todayHours?.open && (
+                <span className="font-semibold text-success">{todayHours.from} - {todayHours.to}</span>
+              )}
+              <button type="button" onClick={() => setHoursOpen(true)} aria-label="Ver horários de funcionamento">
+                <Info className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
+            {settings?.show_min_order !== false && minOrder > 0 && (
+              <p className="font-semibold">
+                Pedido mínimo: <span className="text-success">{formatBRL(minOrder)}</span>
+              </p>
+            )}
+            {settings?.show_whatsapp_link !== false && wppDigits && (
+              <a
+                href={`https://wa.me/55${wppDigits}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 font-semibold text-foreground"
+              >
+                <MessageCircle className="h-4 w-4 text-success" /> WhatsApp
+              </a>
+            )}
+          </div>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            {settings?.show_login_button !== false && (
+              <Button asChild size="sm" variant="secondary">
+                <Link to="/auth"><LogIn className="h-4 w-4 mr-1" /> Login</Link>
+              </Button>
+            )}
+            {settings?.show_rating !== false && (
+              <span className="inline-flex items-center gap-1 font-semibold">
+                <Star className="h-4 w-4 fill-success text-success" />
+                {Number(settings?.rating ?? 5).toFixed(1)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={hoursOpen} onOpenChange={setHoursOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Horário de funcionamento</DialogTitle></DialogHeader>
+          <div className="space-y-1 text-sm">
+            {WEEKDAYS.map((d) => {
+              const cfg = settings?.business_hours?.[d.key];
+              return (
+                <div key={d.key} className="flex justify-between border-b border-border py-1 last:border-0">
+                  <span>{d.label}</span>
+                  <span className="text-muted-foreground">{cfg?.open ? `${cfg.from} - ${cfg.to}` : "Fechado"}</span>
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Hero */}
       <header className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
+
         {settings?.banner_enabled && settings?.banner_url && (
           <div className="mx-auto max-w-2xl px-4 pt-4">
             <img

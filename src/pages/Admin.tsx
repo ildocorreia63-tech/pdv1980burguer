@@ -169,6 +169,12 @@ export default function Admin() {
     { max_km: 4, price: 8.99, free_from: 0, eta: "", no_delivery: false },
     { max_km: 5, price: 11.99, free_from: 0, eta: "", no_delivery: false },
   ];
+  const [minOrderValue, setMinOrderValue] = useState("0");
+  const [showMinOrder, setShowMinOrder] = useState(true);
+  const [rating, setRating] = useState("5.0");
+  const [showRating, setShowRating] = useState(true);
+  const [showWhatsappLink, setShowWhatsappLink] = useState(true);
+  const [showLoginButton, setShowLoginButton] = useState(true);
   const [deliveryMode, setDeliveryMode] = useState<"zones" | "km">("zones");
   const [storeAddress, setStoreAddress] = useState("");
   const [kmTiers, setKmTiers] = useState<KmTier[]>(DEFAULT_KM_TIERS);
@@ -197,6 +203,12 @@ export default function Admin() {
       setBannerUrl(sx.banner_url ?? null);
       setLogoUrl(sx.logo_url ?? null);
       setBannerEnabled(sx.banner_enabled ?? true);
+      setMinOrderValue(String(Number(sx.min_order_value ?? 0)));
+      setShowMinOrder(sx.show_min_order ?? true);
+      setRating(String(Number(sx.rating ?? 5)));
+      setShowRating(sx.show_rating ?? true);
+      setShowWhatsappLink(sx.show_whatsapp_link ?? true);
+      setShowLoginButton(sx.show_login_button ?? true);
       setDeliveryMode((sx.delivery_mode as "zones" | "km") ?? "zones");
       setStoreAddress(sx.store_address ?? "");
       const tiersRaw = Array.isArray(sx.delivery_km_tiers) ? sx.delivery_km_tiers : [];
@@ -374,6 +386,12 @@ export default function Admin() {
       delivery_mode: deliveryMode,
       store_address: storeAddress.trim() || null,
       delivery_km_tiers: cleanTiers,
+      min_order_value: Number(String(minOrderValue).replace(",", ".")) || 0,
+      show_min_order: showMinOrder,
+      rating: Math.min(5, Math.max(0, Number(String(rating).replace(",", ".")) || 0)),
+      show_rating: showRating,
+      show_whatsapp_link: showWhatsappLink,
+      show_login_button: showLoginButton,
       ...clearLatLng,
     } as any).eq("id", settingsId);
     if (error) return toast.error(error.message);
@@ -774,6 +792,38 @@ export default function Admin() {
                 <Label htmlFor="banner_enabled" className="text-xs">Exibir banner no cardápio</Label>
                 <Switch id="banner_enabled" checked={bannerEnabled} onCheckedChange={setBannerEnabled} />
               </div>
+            </div>
+
+            {/* Barra de informações do cardápio */}
+            <div className="rounded-lg border border-border p-3 space-y-3">
+              <p className="font-display text-sm">Barra de informações do cardápio</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Pedido mínimo (R$)</Label>
+                  <Input inputMode="decimal" value={minOrderValue} onChange={(e) => setMinOrderValue(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Avaliação (0 a 5)</Label>
+                  <Input inputMode="decimal" value={rating} onChange={(e) => setRating(e.target.value)} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-border p-2">
+                <Label htmlFor="show_min_order" className="text-xs">Exibir pedido mínimo</Label>
+                <Switch id="show_min_order" checked={showMinOrder} onCheckedChange={setShowMinOrder} />
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-border p-2">
+                <Label htmlFor="show_rating" className="text-xs">Exibir avaliação</Label>
+                <Switch id="show_rating" checked={showRating} onCheckedChange={setShowRating} />
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-border p-2">
+                <Label htmlFor="show_wpp" className="text-xs">Exibir link do WhatsApp</Label>
+                <Switch id="show_wpp" checked={showWhatsappLink} onCheckedChange={setShowWhatsappLink} />
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-border p-2">
+                <Label htmlFor="show_login" className="text-xs">Exibir botão Login</Label>
+                <Switch id="show_login" checked={showLoginButton} onCheckedChange={setShowLoginButton} />
+              </div>
+              <Button size="sm" className="w-full" onClick={saveSettings}>Salvar informações</Button>
             </div>
 
             {/* Modo de entrega */}
