@@ -153,6 +153,10 @@ export default function Admin() {
   const [bannerEnabled, setBannerEnabled] = useState(true);
   const [bannerUploading, setBannerUploading] = useState(false);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  // Logo da loja (substitui a imagem padrão no topo do app)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [settingsId, setSettingsId] = useState<string | null>(null);
 
   // Delivery mode (zones | km)
@@ -190,6 +194,7 @@ export default function Admin() {
       setPixCity(sx.pix_city ?? "");
       setHours({ ...DEFAULT_HOURS, ...(sx.business_hours ?? {}) });
       setBannerUrl(sx.banner_url ?? null);
+      setLogoUrl(sx.logo_url ?? null);
       setBannerEnabled(sx.banner_enabled ?? true);
       setDeliveryMode((sx.delivery_mode as "zones" | "km") ?? "zones");
       setStoreAddress(sx.store_address ?? "");
@@ -363,6 +368,7 @@ export default function Admin() {
       pix_city: pixCity.trim() || null,
       business_hours: hours,
       banner_url: bannerUrl,
+      logo_url: logoUrl,
       banner_enabled: bannerEnabled,
       delivery_mode: deliveryMode,
       store_address: storeAddress.trim() || null,
@@ -405,6 +411,41 @@ export default function Admin() {
     }
     toast.success("Banner removido");
   };
+
+  // Envio do logo — aceita qualquer imagem da galeria/câmera do dispositivo.
+  const handleLogoUpload = async (file: File) => {
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) return toast.error("Imagem muito grande (máx 3MB)");
+    if (!file.type.startsWith("image/")) return toast.error("Arquivo deve ser uma imagem");
+    setLogoUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+      const path = `logos/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("product-images").upload(path, file, { cacheControl: "3600", upsert: false });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+      setLogoUrl(data.publicUrl);
+      if (settingsId) {
+        const { error } = await supabase.from("store_settings").update({ logo_url: data.publicUrl } as any).eq("id", settingsId);
+        if (error) throw error;
+      }
+      toast.success("Logo atualizado");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Erro ao enviar logo");
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const removeLogo = async () => {
+    if (!confirm("Voltar para o logo padrão?")) return;
+    setLogoUrl(null);
+    if (settingsId) {
+      await supabase.from("store_settings").update({ logo_url: null } as any).eq("id", settingsId);
+    }
+    toast.success("Logo padrão restaurado");
+  };
+
 
   const updateDay = (key: string, patch: Partial<BusinessHours[string]>) => {
     setHours((h) => ({ ...h, [key]: { ...h[key], ...patch } }));
@@ -654,6 +695,42 @@ export default function Admin() {
                 Salvar horários
               </Button>
             </div>
+
+            {/* Logo da loja */}
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <p className="font-display text-sm">Logo da loja</p>
+              <div className="flex items-center gap-3">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-black ring-2 ring-primary/30 flex items-center justify-center p-1">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo da loja" className="h-full w-full object-contain" />
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground text-center">Padrão</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Escolha uma imagem da galeria (PNG/JPG, máx 3MB). Ela aparece no topo do app.
+                </p>
+              </div>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); e.target.value = ""; }}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="flex-1" disabled={logoUploading} onClick={() => logoInputRef.current?.click()}>
+                  {logoUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+                  {logoUrl ? "Trocar logo" : "Escolher da galeria"}
+                </Button>
+                {logoUrl && (
+                  <Button size="sm" variant="ghost" className="text-destructive" onClick={removeLogo} aria-label="Remover logo">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
 
             <div className="rounded-lg border border-border p-3 space-y-2">
               <div className="flex items-center gap-2">
