@@ -25,6 +25,7 @@ const ListaCompras = lazy(() => import("./pages/ListaCompras"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const Acompanhar = lazy(() => import("./pages/Acompanhar"));
 const Cozinha = lazy(() => import("./pages/Cozinha"));
+const Aniversariantes = lazy(() => import("./pages/Aniversariantes"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,6 +75,8 @@ const App = () => (
                 <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
                 <Route path="/insumos" element={<ProtectedRoute adminOnly><Insumos /></ProtectedRoute>} />
                 <Route path="/lista-compras" element={<ProtectedRoute adminOnly><ListaCompras /></ProtectedRoute>} />
+                <Route path="/aniversariantes" element={<ProtectedRoute><Aniversariantes /></ProtectedRoute>} />
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

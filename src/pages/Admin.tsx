@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
-import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon, Upload, ImageIcon, Loader2, Clock, Boxes, ClipboardList, Webhook, RotateCcw, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Tag, GripVertical, MapPin, Settings as SettingsIcon, Upload, ImageIcon, Loader2, Clock, Boxes, ClipboardList, Webhook, RotateCcw, AlertTriangle, Cake } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { BusinessHours, DEFAULT_HOURS, WEEKDAYS } from "@/lib/businessHours";
@@ -485,6 +485,10 @@ export default function Admin() {
           <Button asChild size="icon" variant="outline" title="Lista de Compras">
             <Link to="/lista-compras"><ClipboardList className="h-4 w-4" /></Link>
           </Button>
+          <Button asChild size="icon" variant="outline" title="Aniversariantes do mês">
+            <Link to="/aniversariantes"><Cake className="h-4 w-4" /></Link>
+          </Button>
+
           <Button size="icon" variant="outline" onClick={() => setSettingsOpen(true)} title="Configurações da loja">
             <SettingsIcon className="h-4 w-4" />
           </Button>
