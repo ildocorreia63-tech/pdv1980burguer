@@ -696,6 +696,42 @@ export default function Admin() {
               </Button>
             </div>
 
+            {/* Logo da loja */}
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <p className="font-display text-sm">Logo da loja</p>
+              <div className="flex items-center gap-3">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-black ring-2 ring-primary/30 flex items-center justify-center p-1">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo da loja" className="h-full w-full object-contain" />
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground text-center">Padrão</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Escolha uma imagem da galeria (PNG/JPG, máx 3MB). Ela aparece no topo do app.
+                </p>
+              </div>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f); e.target.value = ""; }}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="flex-1" disabled={logoUploading} onClick={() => logoInputRef.current?.click()}>
+                  {logoUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+                  {logoUrl ? "Trocar logo" : "Escolher da galeria"}
+                </Button>
+                {logoUrl && (
+                  <Button size="sm" variant="ghost" className="text-destructive" onClick={removeLogo} aria-label="Remover logo">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+
             <div className="rounded-lg border border-border p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <ImageIcon className="h-4 w-4 text-primary" />
