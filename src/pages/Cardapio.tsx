@@ -115,6 +115,56 @@ export default function Cardapio() {
   const setPaymentMethod = (v: CheckoutData["paymentMethod"]) => setCheckout((c) => ({ ...c, paymentMethod: v }));
   const setChangeFor = (v: string) => setCheckout((c) => ({ ...c, changeFor: v }));
 
+  // Perfil do cliente (e-mail e aniversário) — persistido localmente e no banco
+  type Profile = { email: string; birthDate: string };
+  const [profileRaw, setProfile] = usePersistentState<Profile>(PROFILE_KEY, { email: "", birthDate: "" });
+  const profile: Profile = {
+    email: safeString(profileRaw?.email),
+    birthDate: safeString(profileRaw?.birthDate),
+  };
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const saveProfile = async () => {
+    // validação defensiva antes de enviar ao banco
+    if (name.trim().length < 2) return toast.error("Informe seu nome");
+    const phoneDigits = onlyDigits(phone);
+    if (phoneDigits.length < 10 || phoneDigits.length > 13) return toast.error("WhatsApp inválido");
+    if (profile.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(profile.email.trim())) {
+      return toast.error("E-mail inválido");
+    }
+    const cpfDigits = onlyDigits(cpf);
+    if (cpfDigits && !isValidCPF(cpfDigits)) return toast.error("CPF inválido");
+
+    setSavingProfile(true);
+    try {
+      const { error } = await supabase.rpc("upsert_customer_profile", {
+        _data: {
+          name: name.trim(),
+          phone: phoneDigits,
+          email: profile.email.trim() || null,
+          cpf: cpfDigits || null,
+          birth_date: profile.birthDate || null,
+          address_street: street,
+          address_number: number,
+          address_complement: complement,
+          address_reference: reference,
+        },
+      });
+      if (error) throw error;
+      toast.success("Dados salvos");
+      setCustomerOpen(false);
+      if (totalQty > 0) {
+        setCartOpen(false);
+        setCheckoutOpen(true);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Falha ao salvar seus dados";
+      toast.error(msg);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [lastOrderNum, setLastOrderNum] = useState<number | null>(null);
