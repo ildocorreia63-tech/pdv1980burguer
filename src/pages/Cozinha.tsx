@@ -202,7 +202,7 @@ export default function Cozinha() {
   // Atualiza o status no banco e devolve a linha alterada.
   // Usamos .select() para diferenciar "erro" de "0 linhas alteradas" (RLS/permissão),
   // que antes falhava silenciosamente e dava a impressão de que o botão não funcionava.
-  const updateStatus = async (o: Order, patch: Record<string, unknown>) => {
+  const updateStatus = async (o: Order, patch: { status: Status; accepted_at?: string }) => {
     const { data, error } = await supabase
       .from("online_orders")
       .update(patch)
