@@ -864,50 +864,6 @@ export type Database = {
           welcome_message: string | null
           whatsapp_number: string | null
         }
-        Insert: {
-          banner_enabled?: boolean | null
-          banner_url?: string | null
-          business_hours?: Json | null
-          delivery_km_tiers?: Json | null
-          delivery_mode?: string | null
-          id?: string | null
-          logo_url?: string | null
-          menu_open?: boolean | null
-          min_order_value?: number | null
-          rating?: number | null
-          show_login_button?: boolean | null
-          show_min_order?: boolean | null
-          show_rating?: boolean | null
-          show_whatsapp_link?: boolean | null
-          store_address?: string | null
-          store_lat?: number | null
-          store_lng?: number | null
-          store_name?: string | null
-          welcome_message?: string | null
-          whatsapp_number?: string | null
-        }
-        Update: {
-          banner_enabled?: boolean | null
-          banner_url?: string | null
-          business_hours?: Json | null
-          delivery_km_tiers?: Json | null
-          delivery_mode?: string | null
-          id?: string | null
-          logo_url?: string | null
-          menu_open?: boolean | null
-          min_order_value?: number | null
-          rating?: number | null
-          show_login_button?: boolean | null
-          show_min_order?: boolean | null
-          show_rating?: boolean | null
-          show_whatsapp_link?: boolean | null
-          store_address?: string | null
-          store_lat?: number | null
-          store_lng?: number | null
-          store_name?: string | null
-          welcome_message?: string | null
-          whatsapp_number?: string | null
-        }
         Relationships: []
       }
     }
@@ -918,6 +874,31 @@ export type Database = {
       }
       get_online_order: { Args: { _id: string }; Returns: Json }
       get_online_order_status: { Args: { _id: string }; Returns: Json }
+      get_public_store_settings: {
+        Args: never
+        Returns: {
+          banner_enabled: boolean
+          banner_url: string
+          business_hours: Json
+          delivery_km_tiers: Json
+          delivery_mode: string
+          id: string
+          logo_url: string
+          menu_open: boolean
+          min_order_value: number
+          rating: number
+          show_login_button: boolean
+          show_min_order: boolean
+          show_rating: boolean
+          show_whatsapp_link: boolean
+          store_address: string
+          store_lat: number
+          store_lng: number
+          store_name: string
+          welcome_message: string
+          whatsapp_number: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
