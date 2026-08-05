@@ -45,6 +45,9 @@ export function CustomerPurchaseHistoryDialog({
 
     let active = true;
     const loadHistory = async () => {
+      // Evita exibir dados do cliente anterior enquanto uma nova consulta é feita.
+      setSales([]);
+      setItems([]);
       setLoading(true);
       const { data: saleRows, error: salesError } = await supabase
         .from("sales")
@@ -83,6 +86,8 @@ export function CustomerPurchaseHistoryDialog({
       if (!active) return;
       setLoading(false);
       if (itemsError) {
+        setSales(normalizedSales);
+        setItems([]);
         handleError(itemsError, "Não foi possível carregar os itens das compras");
         return;
       }
