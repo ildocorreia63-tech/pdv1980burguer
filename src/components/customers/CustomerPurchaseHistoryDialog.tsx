@@ -110,7 +110,11 @@ export function CustomerPurchaseHistoryDialog({
 
   const itemsBySale = useMemo(() => {
     const grouped = new Map<string, SaleItemHistoryRow[]>();
-    items.forEach((item) => grouped.set(item.sale_id, [...(grouped.get(item.sale_id) ?? []), item]));
+    items.forEach((item) => {
+      const saleItems = grouped.get(item.sale_id) ?? [];
+      saleItems.push(item);
+      grouped.set(item.sale_id, saleItems);
+    });
     return grouped;
   }, [items]);
 
