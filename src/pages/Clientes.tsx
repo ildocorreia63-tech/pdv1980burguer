@@ -15,7 +15,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { handleError } from "@/lib/errors";
-import { Plus, Phone, Mail, Cake, Pencil, Search } from "lucide-react";
+import { CustomerPurchaseHistoryDialog } from "@/components/customers/CustomerPurchaseHistoryDialog";
+import { Plus, Phone, Mail, Cake, Pencil, Search, ReceiptText } from "lucide-react";
 import { toast } from "sonner";
 
 export interface CustomerRow {
@@ -57,6 +58,7 @@ export default function Clientes() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [historyCustomer, setHistoryCustomer] = useState<CustomerRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -203,6 +205,15 @@ export default function Clientes() {
                 {formatBRL(c.credit_balance)}
               </p>
             </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={() => setHistoryCustomer(c)}
+              aria-label={`Ver histórico de ${c.name}`}
+            >
+              <ReceiptText className="h-4 w-4 text-primary" />
+            </Button>
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(c)} aria-label="Editar cliente">
               <Pencil className="h-4 w-4 text-primary" />
             </Button>
@@ -320,6 +331,14 @@ export default function Clientes() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CustomerPurchaseHistoryDialog
+        customer={historyCustomer}
+        open={historyCustomer !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setHistoryCustomer(null);
+        }}
+      />
     </AppShell>
   );
 }
