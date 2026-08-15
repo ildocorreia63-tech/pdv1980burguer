@@ -1,7 +1,7 @@
 {
   "name": "1980 Burguer PDV",
   "short_name": "1980 PDV",
-  "description": "PDV mobile da hamburgueria 1980 Burguer: vendas, fiado e despesas.",
+  "description": "Sistema PDV completo da 1980 Burguer: controle de vendas, fiado, despesas, delivery, cardápio digital e pagamentos Pix e cartão.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
