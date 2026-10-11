@@ -313,7 +313,7 @@ export function CashRegisterDialog({ open, onOpenChange }: { open: boolean; onOp
                 <Textarea rows={2} value={closingNotes} onChange={(e) => setClosingNotes(e.target.value)} />
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => printReport(closingHtml(session, totals, closingAmount || totals.expected, (closingAmount || totals.expected) - totals.expected, closingNotes, movements))}>
+                <Button variant="outline" className="flex-1" onClick={() => printReport(closingHtml(session, totals, closingAmount || totals.expected, (closingAmount || totals.expected) - totals.expected, closingNotes, movements, operatorName))}>
                   <Printer className="h-4 w-4 mr-1" /> Imprimir prévia
                 </Button>
                 <Button variant="destructive" className="flex-1" onClick={closeRegister} disabled={closing}>
