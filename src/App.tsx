@@ -17,6 +17,7 @@ const PDV = lazy(() => import("./pages/PDV"));
 const Fiados = lazy(() => import("./pages/Fiados"));
 const Despesas = lazy(() => import("./pages/Despesas"));
 const Admin = lazy(() => import("./pages/Admin"));
+const Team = lazy(() => import("./pages/Team"));
 const PedidosOnline = lazy(() => import("./pages/PedidosOnline"));
 const Relatorios = lazy(() => import("./pages/Relatorios"));
 const Cardapio = lazy(() => import("./pages/Cardapio"));
@@ -74,6 +75,7 @@ const App = () => (
                 <Route path="/despesas" element={<ProtectedRoute><Despesas /></ProtectedRoute>} />
                 <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
                 <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
+                <Route path="/equipe" element={<ProtectedRoute adminOnly><Team /></ProtectedRoute>} />
                 <Route path="/insumos" element={<ProtectedRoute adminOnly><Insumos /></ProtectedRoute>} />
                 <Route path="/lista-compras" element={<ProtectedRoute adminOnly><ListaCompras /></ProtectedRoute>} />
                 <Route path="/aniversariantes" element={<ProtectedRoute><Aniversariantes /></ProtectedRoute>} />

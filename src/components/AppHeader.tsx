@@ -2,7 +2,7 @@ import defaultLogo from "@/assets/logo-1980.jpg";
 import { ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { LogOut, ClipboardList, Users, Cake, Boxes, Tag, Settings as SettingsIcon, MapPin, RotateCcw, Plus, LayoutDashboard } from "lucide-react";
+import { LogOut, ClipboardList, Users, Cake, Boxes, Tag, Settings as SettingsIcon, MapPin, RotateCcw, Plus, LayoutDashboard, UserRoundCog } from "lucide-react";
 import { useStoreLogo } from "@/hooks/useStoreLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Link, useLocation } from "react-router-dom";
@@ -31,6 +31,7 @@ export const AppHeader = ({ title, action, subAction }: { title?: string; action
       {(subAction || (location.pathname !== "/pdv" && location.pathname !== "/" && location.pathname !== "/cozinha")) && (
         <div className="px-4 pb-3 flex gap-1 overflow-x-auto no-scrollbar">
           {(location.pathname.startsWith("/admin") ||
+           location.pathname === "/equipe" ||
            location.pathname === "/relatorios" ||
            location.pathname === "/clientes" ||
            location.pathname === "/aniversariantes" ||
@@ -47,6 +48,7 @@ export const AppHeader = ({ title, action, subAction }: { title?: string; action
                   <LayoutDashboard className="h-5 w-5" />
                 </Button>
               </Link>
+              <Link to="/equipe"><Button variant={location.pathname === "/equipe" ? "default" : "outline"} size="icon" className="h-10 w-10 shrink-0" title="Operadores e turnos"><UserRoundCog className="h-5 w-5" /></Button></Link>
               <Link to="/relatorios">
                 <Button 
                   variant={location.pathname === "/relatorios" ? "default" : "outline"} 
